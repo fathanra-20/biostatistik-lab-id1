@@ -1,4 +1,4 @@
-nanti masinput di terminal
+nanti input di terminal
 git add .
 git commit -m "pesan commit"
 git push
