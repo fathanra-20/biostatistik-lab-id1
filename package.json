@@ -6,9 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "dependencies": {
-    "@vercel/kv": "^3.0.0"
-  },
+  "dependencies": {},
   "engines": {
     "node": ">=18.x"
   }

@@ -1,7 +1,5 @@
-import { kv } from '@vercel/kv';
-
 export default async function handler(req, res) {
-  // Add CORS headers to allow requests if needed, though usually same-origin on Vercel
+  // CORS headers
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -19,33 +17,54 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  const { JSONBIN_ID, JSONBIN_KEY } = process.env;
+  
+  if (!JSONBIN_ID || !JSONBIN_KEY) {
+    return res.status(500).json({ error: 'Database credentials not configured' });
+  }
+
   try {
     const entry = req.body;
     
-    // Fetch existing scores (default to empty array if key doesn't exist)
-    let scores = await kv.get('biostatistik_lab_scores') || [];
-    
-    // If it's a string, parse it (just in case it was saved incorrectly before)
-    if (typeof scores === 'string') {
-      try {
-        scores = JSON.parse(scores);
-      } catch (e) {
-        scores = [];
+    // 1. Fetch current scores
+    const getRes = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_ID}`, {
+      method: 'GET',
+      headers: {
+        'X-Master-Key': JSONBIN_KEY
       }
+    });
+    
+    const getData = await getRes.json();
+    let scores = [];
+    if (getData.record && Array.isArray(getData.record)) {
+      scores = getData.record;
+    } else if (getData.record && getData.record.scores) {
+      scores = getData.record.scores;
     }
 
-    // Filter out previous entry from the same NPM so we don't have duplicates for retakes
+    // 2. Filter out duplicate NPMs
     scores = scores.filter(e => e.npm !== entry.npm);
     
-    // Add the new score
+    // 3. Add the new score
     scores.push(entry);
 
-    // Save updated scores back to KV
-    await kv.set('biostatistik_lab_scores', scores);
+    // 4. Update the JSON bin
+    const putRes = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_ID}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Master-Key': JSONBIN_KEY
+      },
+      body: JSON.stringify(scores)
+    });
+    
+    if (!putRes.ok) {
+      throw new Error('Failed to save to JSONBin');
+    }
 
     res.status(200).json({ success: true, count: scores.length });
   } catch (error) {
-    console.error('Error saving score to KV:', error);
+    console.error('Error saving score:', error);
     res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 }
