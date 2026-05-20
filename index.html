@@ -412,7 +412,7 @@
       return (<div style={{ padding: "24px 16px", textAlign: "center" }}>
         <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 2, color: "var(--text-muted)", fontFamily: "var(--font-mono)", marginBottom: 8, display: "flex", justifyContent: "center", alignItems: "center", gap: 6 }}>
           INDEKS PEMAHAMAN NUMERIK DALAM KEDOKTERAN
-          <span title={`Percobaan ke-${finalAttempts}`} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 14, height: 14, borderRadius: "50%", background: "var(--bg-card)", border: "1px solid var(--border)", fontSize: 9, color: "var(--text-muted)", cursor: "help", textTransform: "none", letterSpacing: "normal" }}>i</span>
+          <span title={`Percobaan ke-${finalAttempts}`} onClick={() => alert(`Ini adalah percobaan ujian akhir ke-${finalAttempts} Anda.`)} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 14, height: 14, borderRadius: "50%", background: "var(--bg-card)", border: "1px solid var(--border)", fontSize: 9, color: "var(--text-muted)", cursor: "pointer", textTransform: "none", letterSpacing: "normal" }}>i</span>
         </div>
         <div style={{ fontSize: 64, fontWeight: 700, color: tier.color, fontFamily: "var(--font-mono)", lineHeight: 1 }}>{numi}</div>
         <div style={{ fontSize: 12, color: "var(--text-muted)", fontFamily: "var(--font-mono)", marginTop: 4 }}>dari 1000</div>
@@ -641,7 +641,7 @@
                           <td key={idx} style={{ textAlign: "center", fontFamily: "var(--font-mono)", fontSize: 12, color: s >= 4 ? "var(--green)" : s >= 3 ? "var(--yellow)" : "var(--red)" }}>
                             <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 4 }}>
                               <span>{s}/5</span>
-                              <span title={`${att}x percobaan`} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 14, height: 14, borderRadius: "50%", background: "var(--bg-card)", border: "1px solid var(--border)", fontSize: 9, color: "var(--text-muted)", cursor: "help", fontWeight: "normal" }}>i</span>
+                              <span title={`${att}x percobaan`} onClick={() => alert(`Peserta ini melakukan ${att}x percobaan pada modul ini.`)} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 14, height: 14, borderRadius: "50%", background: "var(--bg-card)", border: "1px solid var(--border)", fontSize: 9, color: "var(--text-muted)", cursor: "pointer", fontWeight: "normal" }}>i</span>
                             </div>
                           </td>
                         );
