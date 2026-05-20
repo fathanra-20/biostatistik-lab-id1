@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab Biostatistik — Pembelajaran Interaktif</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --accent: #4F8EF7;
+      --green: #5BC088;
+      --red: #E8665A;
+      --yellow: #D4A843;
+      --bg: #0D0F14;
+      --bg-card: #14161C;
+      --bg-accent: #1E2A3A;
+      --border: #2A2D35;
+      --border-accent: #1E2A3A;
+      --text-primary: #E4E7EC;
+      --text-secondary: #A5B4C8;
+      --text-muted: #6B7280;
+      --font-body: 'Source Serif 4', Georgia, serif;
+      --font-mono: 'DM Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--bg);
+      font-family: var(--font-body);
+      color: var(--text-primary);
+    }
+
+    input[type=range] {
+      accent-color: var(--accent);
+      width: 100%;
+    }
+
+    ::-webkit-scrollbar {
+      height: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 2px;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+  <script type="text/babel">
+
+    const { useState, useMemo, useEffect } = React;
+
+    const MODULES = [
+      { id: "descriptive", title: "Statistik Deskriptif", icon: "📊" },
+      { id: "distributions", title: "Distribusi", icon: "🔔" },
+      { id: "probability", title: "Probabilitas & Bayes", icon: "🎲" },
+      { id: "hypothesis", title: "Uji Hipotesis", icon: "⚖️" },
+      { id: "diagnostic", title: "Tes Diagnostik", icon: "🩺" },
+      { id: "study", title: "Desain Studi", icon: "🔬" },
+    ];
+
+    const MATERIS = {
+      descriptive: {
+        sections: [
+          { heading: "UGD yang Tidak Bisa Mengukur Waktu Tunggunya Sendiri", body: "Minggu pertama rotasi klinik. Direktur rumah sakit masuk ke rapat pagi dan dengan bangga mengumumkan: \"Rata-rata waktu tunggu UGD kita 28 menit.\" Dokter senior memutar matanya. \"Angka itu menyesatkan,\" bisiknya. \"Coba lihat datanya.\"\n\nDia membuka data waktu tunggu kemarin: 8, 10, 12, 12, 14, 15, 15, 18, 20, 150 menit. Satu pasien menunggu dua setengah jam karena kesalahan administrasi rekam medis. Satu pencilan itu menarik mean dari sekitar 14 menit menjadi 27,4. Direktur secara teknis benar — tapi sangat menyesatkan.\n\nIni pelajaran pertamamu: angka bisa berbohong jika kamu memilih ringkasan yang salah. Mean, median, dan modus adalah tiga lensa berbeda untuk data yang sama." },
+          {
+            heading: "Tiga Cara Menemukan \"Nilai Tengah\"", body: "Bayangkan begini: 10 pasien datang ke klinikmu hari ini. Kamu ingin tahu seperti apa pasien \"tipikal\".", definitions: [
+              { term: "Mean (x̄)", def: "Jumlahkan semua usia, bagi dengan 10. Sederhana — tapi kalau satu pasien berusia 98 tahun, tiba-tiba \"rata-rata\" jadi 45 padahal semua yang lain berusia 30-an. Mean mudah dipengaruhi pencilan." },
+              { term: "Median", def: "Urutkan semua orang berdasarkan usia, pilih orang yang berdiri di tengah. Si 98 tahun tidak menggeser angka ini. Untuk data miring — biaya RS, pendapatan, lama rawat — median adalah jawaban yang jujur." },
+              { term: "Modus", def: "Usia mana yang paling sering muncul? Kurang glamor, tapi penting untuk data kategorikal — seperti keluhan utama paling umum di malam Jumat." },
+            ]
+          },
+          {
+            heading: "Mengapa \"Sebaran\" Bisa Menyelamatkan Nyawa", body: "Ini skenario yang akan kamu hadapi saat residensi: dua obat tekanan darah sama-sama menurunkan sistolik 10 mmHg rata-rata. Mean identik. Dokter seniormu bertanya: \"Mana yang akan kamu resepkan?\"\n\nObat A: kebanyakan pasien turun antara 8 dan 12 mmHg. Konsisten.\nObat B: ada yang turun 25 mmHg (hipotensi berbahaya), ada yang turun 0. Rata-rata sama, keamanan sangat berbeda.\n\nItulah yang ditangkap oleh standar deviasi — konsistensi efek obat.", definitions: [
+              { term: "Standar Deviasi (σ)", def: "Seberapa rapat data berkumpul di sekitar mean. σ kecil = konsisten, bisa diprediksi. σ besar = tidak stabil. Anggap saja sebagai \"skor keandalan\" datamu." },
+              { term: "IQR (Rentang Interkuartil)", def: "Rentang 50% data di tengah. Mengabaikan nilai ekstrem — pasangan setia dari median. Untuk data miring, laporkan median + IQR, bukan mean + SD." },
+            ]
+          },
+          { heading: "Membaca Bentuk Penyakit", body: "Dokter seniormu membuka dua histogram. \"Beritahu aku yang mana miring kanan.\"\n\nBayangkan kamu mengurutkan tagihan RS dari 100 pasien. Kebanyakan berutang Rp5–20 juta. Tapi beberapa rawat ICU menghabiskan Rp1,5 miliar+. Tagihan ekstrem itu membuat ekor panjang ke kanan. Mean tertarik ke ekor itu, tapi median tetap di tempat kebanyakan pasien berada.\n\nMiring kanan (Mean > Median): Biaya kesehatan, lama rawat, pendapatan.\nMiring kiri (Mean < Median): Usia kematian di negara maju — kebanyakan hidup tua, sebagian meninggal muda.\nSimetris (Mean ≈ Median): Tekanan darah, tinggi badan, kebanyakan nilai lab pada populasi sehat.\n\nAturan klinisnya: jika seseorang menyebut mean untuk data miring, curigai. Tanyakan mediannya." },
+          { heading: "Rangkuman untuk Ujian", body: "• Menambahkan 10 ke setiap nilai? Mean bergeser 10, SD tetap sama. (Semua dapat bonus — sebarannya tidak berubah.)\n• Mengalikan dengan 2? Mean DAN SD dua-duanya berlipat ganda.\n• Mean selalu tertarik ke arah ekor.\n• Pencilan mempengaruhi: mean, range, SD. TIDAK mempengaruhi: median, modus, IQR.\n• Default untuk data klinis miring: Median + IQR." }
+        ]
+      },
+      distributions: {
+        sections: [
+          { heading: "Hasil Lab yang Membuat Mahasiswa Kedokteran Panik", body: "Bulan kedua rotasi. Kamu mendapat hasil lab pada pasien sehat berusia 22 tahun. Hemoglobinnya 17,8 g/dL — ditandai merah sebagai \"TINGGI.\" Detak jantungmu melonjak. Apakah kamu harus menelepon dokter senior?\n\nResiden tersenyum. \"Tenang. Rentang referensi itu hanya ±2 standar deviasi dari mean populasi. Secara definisi, 5% orang yang sehat sempurna akan berada di luar rentang itu — 2,5% di setiap sisi. Pasienmu kemungkinan baik-baik saja.\"\n\nMomen itu mengkristalkan kebenaran penting: untuk praktik kedokteran, kamu harus memahami bagaimana \"normal\" didefinisikan." },
+          { heading: "Kurva Lonceng — Tempat Sebagian Besar Kedokteran Berada", body: "Tekanan darah, berat lahir, kolesterol, skor tes kognitif — semuanya membentuk kurva berbentuk lonceng jika kamu mengukur cukup banyak orang. Ini bukan kebetulan. Ketika ratusan faktor genetik dan lingkungan kecil menjumlah, hasilnya mengarah ke bentuk lonceng. Itu kebenaran matematika mendalam yang disebut Teorema Limit Pusat.\n\nKurva ini didefinisikan oleh hanya dua angka:\n\nμ (mu) = pusat lonceng (mean populasi)\nσ (sigma) = seberapa lebar atau sempit lonceng (standar deviasi)\n\nUbah μ dan lonceng bergeser kiri-kanan. Ubah σ dan dia melebar (lebih datar) atau menyempit (lebih tinggi). Dua tombol mengendalikan seluruh bentuk." },
+          { heading: "Aturan yang Akan Kamu Gunakan Setiap Hari: 68-95-99,7", body: "Ini aturan paling berguna dalam biostatistik:\n\n68% nilai berada dalam ±1σ dari mean.\n95% nilai berada dalam ±2σ.\n99,7% nilai berada dalam ±3σ.\n\nKembali ke pasien mahasiswa kita: jika hemoglobin punya μ = 15,5 dan σ = 1,0 pada pria muda, maka 17,8 sekitar 2,3σ di atas mean — di luar rentang 95% tapi tidak dramatis. Di klinik yang melihat ratusan pasien, kamu akan menemukan beberapa seperti ini.\n\nTapi jika nilai pasien 3σ jauhnya? Itu di luar 99,7% populasi. Sekarang perhatikan." },
+          { heading: "Z-Score: Penerjemah Universal", body: "Lab berbeda punya satuan berbeda — hemoglobin dalam g/dL, trombosit dalam ribu/μL, kreatinin dalam mg/dL. Bagaimana membandingkan seberapa \"abnormal\" masing-masing?\n\nz = (nilai pasien − mean populasi) / SD\n\nZ-score +2 = \"2 SD di atas rata-rata.\" Z-score −3 = \"3 SD di bawah.\" Sekarang kamu bisa bilang: \"Hemoglobinnya sedikit tinggi (z = +1,5), tapi kreatininnya mengkhawatirkan (z = +3,8).\"\n\nKamu akan melihat z-score di ujian, grafik pertumbuhan pediatri, dan di jurnal manapun yang melakukan standarisasi data." },
+          { heading: "Mengapa Statistik Benar-Benar Bekerja: Teorema Limit Pusat", body: "Eksperimen pikiran: ukur rata-rata tinggi badan 30 mahasiswa kedokteran acak. Lakukan lagi dengan kelompok berbeda. Dan lagi, ribuan kali. Plot semua rata-rata itu.\n\nTidak peduli seberapa aneh distribusi tinggi individu, distribusi rata-rata tersebut akan terlihat seperti kurva lonceng sempurna. Itulah TLP — dan itu sebabnya hampir setiap uji statistik bekerja. Data mentahmu tidak perlu normal. Kamu hanya perlu n ≥ 30.\n\nStandar Error (SE = σ/√n) mengukur seberapa presisi estimasimu. Studi lebih besar → SE lebih kecil → estimasi lebih tepat." },
+          { heading: "Rangkuman untuk Ujian", body: "• Aturan 68-95-99,7 adalah dasar rentang referensi lab. Hafalkan.\n• Z-score = (nilai − mean) / SD. Melampaui ±2 berarti \"tidak biasa\" (di luar 95%).\n• ~5% pasien sehat akan punya lab \"abnormal\" — secara desain, bukan penyakit.\n• TLP mengatakan rata-rata sampel terdistribusi normal meski data individu tidak.\n• SE = σ/√n: studi lebih besar → presisi lebih tinggi." }
+        ]
+      },
+      probability: {
+        sections: [
+          { heading: "Tes yang Benar 99% (tapi Tetap Salah)", body: "Bulan ketiga. Kamu di klinik kesehatan mahasiswa. Seorang mahasiswa 20 tahun — tanpa faktor risiko, tanpa gejala — menjalani tes HIV rutin. Sensitivitas 99,9%, spesifisitas 99,9%. Hasilnya positif.\n\nMahasiswa itu ketakutan. Kamu hampir berkata \"Maaf\" ketika dokter seniormu menghentikanmu.\n\nDi populasi berisiko rendah ini, prevalensi HIV sekitar 0,01%. Dari 100.000 mahasiswa:\n• 10 punya HIV → ~10 tes positif (positif benar)\n• 99.990 tidak punya → ~100 tes positif (positif palsu)\n\n110 hasil positif, hanya 10 yang benar. Probabilitas mahasiswa ini benar-benar punya HIV? Sekitar 9%.\n\nTesnya akurat 99,9%. Matematikanya tetap mengatakan pasien kemungkinan tidak punya HIV. Selamat datang di teorema Bayes." },
+          { heading: "Mengapa Intuisimu Sudah Bayesian", body: "Kamu sudah melakukan ini setiap hari. Ketika atlet 25 tahun datang dengan nyeri dada, otakmu memberikan probabilitas pre-test yang rendah untuk serangan jantung. Ketika perokok 68 tahun dengan diabetes datang dengan gejala yang sama, probabilitasmu melonjak.\n\nTroponin positif memiliki arti yang sangat berbeda pada dua pasien ini — karena mereka memulai dari baseline yang berbeda.\n\nTeorema Bayes memformalisasi ini: Probabilitas post-test = f(probabilitas pre-test, karakteristik tes). Hasil sama, arti berbeda, tergantung siapa yang kamu tes." },
+          { heading: "Tabel 2×2: Kalkulator Diagnostikmu", body: "Ini alat praktisnya. Bayangkan menguji 10.000 orang. Prevalensi: 5%, sensitivitas: 90%, spesifisitas: 95%.\n\n1. 500 punya penyakit, 9.500 tidak\n2. Dari 500 yang sakit: 90% tes positif → 450 PB, 50 NP\n3. Dari 9.500 yang sehat: 95% tes negatif → 9.025 NB, 475 PP\n\nNPP = 450 / (450 + 475) = 48,6%. Tes positif hanya memberimu peluang seperti lempar koin! Orang sehat jauh melebihi orang sakit, jadi bahkan tingkat positif palsu yang kecil menghasilkan ratusan alarm palsu." },
+          { heading: "Rasio Kemungkinan: Jalan Pintas yang Disukai Dokter Senior", body: "Mengisi tabel 2×2 saat ronde terlalu lama. Rasio kemungkinan (likelihood ratio) bisa dihitung di kepala:\n\nLR+ = Sensitivitas / (1 − Spesifisitas) → seberapa besar hasil positif meningkatkan peluang penyakit\nLR− = (1 − Sensitivitas) / Spesifisitas → seberapa besar hasil negatif menurunkan peluang\n\nResepnya: konversi probabilitas pre-test ke odds → kalikan dengan LR → konversi balik.\n\nLR+ di atas 10? Bukti kuat menegakkan diagnosis. LR− di bawah 0,1? Bukti kuat menyingkirkan diagnosis. LR mendekati 1? Kamu membuang darah pasien dan uang rumah sakit." },
+          { heading: "Pelajarannya: Kapan TIDAK Memesan Tes", body: "Jika prevalensi sangat rendah, bahkan tes yang sangat baik menghasilkan lebih banyak positif palsu daripada positif benar. Inilah mengapa kita tidak menyaring setiap mahasiswa 20 tahun untuk kanker pankreas.\n\nSebelum memesan tes apapun, tanyakan: \"Berapa probabilitas pre-test saya?\" Jika sangat rendah dan tesnya tidak sangat spesifik, hasil positif akan menyebabkan lebih banyak kecemasan daripada kejelasan.\n\nKlinisi terbaik tidak hanya tahu tes mana yang harus dipesan — mereka tahu tes mana yang TIDAK harus dipesan." },
+          { heading: "Rangkuman untuk Ujian", body: "• NPP bergantung pada prevalensi. Prevalensi rendah → NPP rendah, meskipun tes bagus.\n• Sensitivitas & spesifisitas = sifat TES (tidak berubah dengan prevalensi).\n• NPP & NPN = sifat tes + populasi.\n• LR+ > 10 = tes positif kuat. LR− < 0,1 = tes negatif kuat.\n• Selalu mulai dari probabilitas pre-test — itu jangkar untuk semuanya." }
+        ]
+      },
+      hypothesis: {
+        sections: [
+          { heading: "Obat yang \"Berhasil\" (tapi Tidak Berarti)", body: "Elektif penelitian. PI masuk rapat lab sambil tersenyum: \"Kita dapat p = 0,001! Paper ini akan jadi besar.\"\n\nKamu melihat datanya. Obat tekanan darah baru menurunkan sistolik... 0,4 mmHg vs. plasebo. Pada 48.000 pasien. Efeknya nyata — p-value mengonfirmasi itu — tapi 0,4 mmHg tidak membuat perbedaan apapun. Pasienmu tidak akan merasa lebih baik, hidup lebih lama, atau terhindar dari stroke.\n\nIni pelajaran terpenting dalam uji hipotesis: signifikansi statistik bukan signifikansi klinis. P-value memberitahu bahwa efek itu ada. Ia tidak mengatakan apapun tentang apakah efek itu penting." },
+          { heading: "Apa Arti P-Value Sebenarnya (Semua Orang Salah Memahami Ini)", body: "Kamu menguji apakah obat baru menurunkan kolesterol. H₀: \"tidak ada perbedaan.\" Kamu mendapat p = 0,03.\n\nArtinya: \"Jika obat benar-benar tidak melakukan apa-apa, ada peluang 3% melihat hasil seekstrem ini.\"\n\nJebakan-jebakannya:\n\"3% kemungkinan obat tidak bekerja.\" SALAH. P-value ≠ probabilitas H₀ benar.\n\"Obat bekerja dengan 97% kepastian.\" SALAH. Kamu tidak bisa menghitung 1 − p.\n\"Efeknya besar karena p kecil.\" SALAH. Dengan n besar, efek kecil tak bermakna bisa punya p-value kecil.\n\nAnggap p-value seperti detektor logam berbunyi. Ia mengatakan \"ada sesuatu di sini\" — bukan apakah itu koin emas atau tutup botol." },
+          { heading: "Dua Cara untuk Salah (Analogi UGD)", body: "Kamu di UGD. Dua jenis kesalahan yang merusak malammu:\n\nKesalahan Tipe I (Alarm Palsu): Kamu mendiagnosis usus buntu, bergegas ke operasi — usus buntunya normal. Kamu \"menolak\" null padahal benar. Konsekuensi: operasi yang tidak perlu.\n\nKesalahan Tipe II (Diagnosis Terlewat): Kamu memulangkan pasien dengan \"flu perut\" — mereka kembali keesokan harinya dengan usus buntu pecah. Kamu \"gagal menolak\" null padahal usus buntu memang ada.\n\nDalam penelitian: α (biasanya 0,05) = tingkat alarm palsu yang bisa diterima. β = probabilitas melewatkan efek nyata. Power = 1 − β = peluang menangkap efek nyata." },
+          { heading: "Power: Mengapa Studi Kecil Berbahaya", body: "Seorang dokter senior menyebut studi: 15 pasien per kelompok, \"tidak ada perbedaan signifikan\" antara dua obat. \"Jadi keduanya setara,\" katanya.\n\nTunggu dulu. Dengan 15 pasien, studi itu mungkin hanya punya power 30% — peluang 70% melewatkan perbedaan nyata. Studi itu tidak dirancang untuk menemukan apapun.\n\nPower meningkat dengan: ukuran sampel lebih besar (paling praktis), efek lebih besar, α lebih tinggi (tradeoff), variansi lebih rendah. Jika kamu tidak bisa mencapai 80% power, studi itu tidak layak dijalankan." },
+          { heading: "Confidence Interval: Yang Disembunyikan P-Value", body: "Paper A: \"Obat menurunkan LDL 15 mg/dL (95% CI: 8–22, p < 0,001).\" CI menunjukkan efek sebenarnya antara 8 dan 22 — semua bermakna secara klinis. Temuan berguna.\n\nPaper B: \"Obat menurunkan LDL 2 mg/dL (95% CI: 0,5–3,5, p = 0,01).\" Tetap signifikan! Tapi CI menunjukkan efek sebenarnya antara 0,5 dan 3,5 — tidak ada yang bermakna secara klinis. CI mengungkap apa yang disembunyikan p-value.\n\nJika 95% CI melewati nol (misalnya, −3 sampai +8), kamu bahkan tidak bisa yakin obatnya melakukan apapun." },
+          { heading: "Jebakan Perbandingan Ganda", body: "Perusahaan farmasi menguji obatnya terhadap 20 outcome. Pada α = 0,05, kamu akan mengharapkan 1 dari 20 \"signifikan\" murni karena kebetulan.\n\nBenar saja, siaran pers: \"Obat secara signifikan memperbaiki kualitas tidur (p = 0,03)!\" Mereka tidak menyebut 19 hasil null lainnya.\n\nKoreksi Bonferroni: bagi α dengan jumlah tes (0,05/20 = 0,0025). Perlindungan sebenarnya adalah skeptisisme ketika kamu melihat satu temuan cherry-picked dari banyak analisis." },
+          { heading: "Rangkuman untuk Ujian", body: "• P-value = probabilitas data jika H₀ benar. BUKAN probabilitas H₀ benar.\n• Tipe I = positif palsu (α). Tipe II = negatif palsu (β). Power = 1 − β.\n• ↑ n → ↑ power. Target ≥ 80%.\n• Selalu lihat ukuran efek + CI — bukan hanya p-value.\n• Signifikansi statistik ≠ signifikansi klinis.\n• 20 tes pada α=0,05 → ekspektasi 1 positif palsu." }
+        ]
+      },
+      diagnostic: {
+        sections: [
+          { heading: "Tes Rapid Strep yang Mengubah Diagnosis", body: "Klinik Jumat sore. Anak 7 tahun: sakit tenggorokan, demam, tonsil bengkak. Gambaran strep klasik. Tes rapid strep — negatif.\n\nApakah kamu mempercayainya?\n\nDokter seniormu: \"Berapa sensitivitasnya?\" Kamu mencari: sekitar 85%. Artinya dari 100 anak yang benar-benar punya strep, tes ini melewatkan 15. Dengan presentasi seklasik ini — probabilitas pre-test mungkin 60-70% — hasil negatif dari tes dengan sensitivitas 85% seharusnya tidak membuatmu yakin.\n\nDia memesan kultur tenggorokan dan memulai antibiotik empiris. Tiga hari kemudian, kultur kembali positif.\n\nInilah mengapa kamu perlu memahami karakteristik tes — bukan hanya \"positif\" atau \"negatif,\" tapi apa arti hasil itu untuk PASIEN INI." },
+          { heading: "Sensitivitas: Penjaga yang Memasukkan Semua Orang", body: "Bayangkan penjaga pintu yang tugasnya menangkap setiap VIP (pasien sakit). Sensitivitas tinggi = menangkap hampir semua VIP, tapi tidak sengaja memasukkan beberapa orang biasa juga (positif palsu). Dia lebih memilih memasukkan berlebihan daripada melewatkan orang penting.\n\nSensitivitas = PB / (PB + NP) — dari semua yang sakit, berapa banyak yang tertangkap tes?\n\nSensitivitas 95% = 5% pasien sakit terlewat (tingkat negatif palsu).\n\nKetika sensitivitas tinggi dan tes NEGATIF → kamu bisa menyingkirkan penyakit.\nTrik memori: SNout — Sensitif, Negatif, singkirkan (rules OUT).\n\nPenggunaan: tes skrining. Melewatkan kanker lebih buruk dari alarm palsu." },
+          { heading: "Spesifisitas: Penjaga yang Menghalangi Penipu", body: "Penjaga berbeda. Prioritasnya: mencegah non-VIP masuk. Dia tidak pernah membiarkan orang biasa lewat — tapi kadang tanpa sengaja memblokir VIP asli (negatif palsu).\n\nSpesifisitas = NB / (NB + PP) — dari semua yang sehat, berapa yang teridentifikasi dengan benar?\n\nSpesifisitas 95% = 5% orang sehat mendapat hasil positif palsu.\n\nKetika spesifisitas tinggi dan tes POSITIF → kamu bisa menegakkan diagnosis.\nTrik memori: SpIn — Spesifik, Positif, tegakkan (rules IN).\n\nPenggunaan: tes konfirmasi. Kamu akan memulai kemo — kamu perlu yakin." },
+          { heading: "Jebakan Prevalensi", body: "Tes rapid strep punya sensitivitas dan spesifisitas yang sama di mana-mana — angka itu melekat pada tesnya. Tapi NPP dan NPN berubah tergantung DI MANA kamu menggunakannya.\n\nKlinik pediatri kaya strep (prevalensi 30%): rapid strep positif kemungkinan benar.\nSkrining wellness pada mahasiswa sehat (prevalensi 1%): kebanyakan positif adalah alarm palsu.\n\nTes sama. Akurasi sama. Arti yang sama sekali berbeda. Inilah mengapa dokter UGD berpikir berbeda tentang troponin positif pada pria 65 tahun yang mencengkram dadanya vs. pelari maraton 22 tahun." },
+          { heading: "Rasio Kemungkinan: Berpikir Seperti Dokter Senior", body: "LR menangkap seberapa besar tes mengubah pikiranmu:\n\nLR+ = Sensitivitas / (1 − Spesifisitas) → \"Seberapa lebih mungkin positif ini pada orang sakit vs. sehat?\"\nLR− = (1 − Sensitivitas) / Spesifisitas → \"Seberapa kurang mungkin negatif ini pada orang sakit vs. sehat?\"\n\nLR+ > 10 → bukti kuat UNTUK penyakit\nLR+ 5-10 → pergeseran sedang\nLR = 1 → tes tidak berguna\nLR− < 0,1 → bukti kuat MELAWAN penyakit\n\nKeindahannya: LR tidak berubah dengan prevalensi, jadi bisa dipakai di setting klinis manapun." },
+          { heading: "Rangkuman untuk Ujian", body: "• Sensitivitas & spesifisitas = intrinsik pada tes. Tidak berubah dengan prevalensi.\n• NPP & NPN = bergantung pada populasi. Berubah drastis dengan prevalensi.\n• SNout: Sensitif + Negatif → Singkirkan. SpIn: Spesifik + Positif → Tegakkan.\n• Tes sensitif untuk skrining, tes spesifik untuk konfirmasi.\n• LR+ > 10 = kuat menegakkan. LR− < 0,1 = kuat menyingkirkan.\n• ROC AUC: 0,5 = tidak berguna, 1,0 = sempurna." }
+        ]
+      },
+      study: {
+        sections: [
+          { heading: "Kontroversi Kopi yang Menipu Satu Generasi", body: "Di tahun 1980-an, studi menghubungkan kopi dengan penyakit jantung. Berita utama berteriak. Orang-orang beralih ke decaf. Kecuali... studi-studi itu salah.\n\nPeminum kopi juga lebih mungkin merokok, kurang olahraga, dan makan tidak sehat. Studi mengukur asosiasi antara kopi dan penyakit jantung, tapi penyebab sebenarnya adalah gaya hidup yang berkorelasi dengan minum kopi.\n\nBegitu peneliti mengontrol merokok, asosiasinya menghilang. Studi selanjutnya dengan desain lebih baik bahkan menunjukkan kopi mungkin protektif.\n\nIni prinsip terpenting dalam penelitian klinis: asosiasi bukan kausalitas. Desain studi menentukan seberapa kamu bisa mempercayai kesimpulannya." },
+          { heading: "Tangga Bukti", body: "Bayangkan desain studi sebagai tangga kepercayaan:\n\nPuncak — RCT: Kamu secara acak menempatkan pasien ke pengobatan atau plasebo. Randomisasi menyeimbangkan segalanya — perancu yang diketahui dan tidak diketahui. SATU-SATUNYA cara mengatakan \"obat ini MENYEBABKAN outcome itu.\" Ukuran: Risiko Relatif.\n\nTengah — Kohort: Identifikasi yang terpapar (perokok) dan tidak terpapar (bukan perokok), ikuti ke depan. Kamu mendapat insidensi dan RR, tapi perancu mengintai di mana-mana.\n\nBawah — Kasus-Kontrol: Mulai dari orang yang sudah punya penyakit (kasus) vs. yang tidak (kontrol), lihat ke belakang pada paparan. Cepat, murah, penting untuk penyakit langka. Tapi hanya menghasilkan odds ratio, dan recall bias selalu mengancam.\n\nDasar — Potong Lintang: Potret dalam satu waktu. Mengukur prevalensi. Tidak bisa menentukan mana duluan, jadi kausalitas tidak mungkin." },
+          { heading: "NNT: Angka yang Benar-Benar Membantu Pasienmu", body: "Medical rep berkata: \"Statin kami mengurangi serangan jantung 36%!\" Kedengarannya luar biasa.\n\nLihat lebih dekat. Kelompok kontrol: tingkat serangan jantung 3% selama 5 tahun. Pengobatan: 1,9%. Penurunan risiko relatif: 36%. Tapi penurunan risiko absolut: hanya 1,1%. Kamu harus mengobati sekitar 91 pasien selama 5 tahun agar SATU terhindar dari serangan jantung. 90 lainnya minum pil setiap hari tanpa manfaat.\n\nNNT = 1/ARR. Ini ukuran efikasi paling jujur. Bandingkan dengan NNH (Number Needed to Harm). Jika NNT = 91 dan NNH = 200: tradeoff wajar. Jika NNT = 91 dan NNH = 10: pertimbangkan ulang." },
+          { heading: "Paradoks Skrining: Ketika Deteksi Dini Berbohong", body: "Pusat kanker mengumumkan: \"Ketahanan hidup 5 tahun meningkat dari 40% menjadi 65% sejak kita mulai skrining!\" Dewan merayakan. Lalu seorang epidemiolog yang tajam bertanya: \"Apakah lebih sedikit orang yang benar-benar meninggal?\"\n\nHening. Karena mungkin tidak. Dua bias licik:\n\nLead-time bias: Deteksi kanker 3 tahun lebih awal → pasien \"bertahan\" 3 tahun lebih lama dari diagnosis. Tapi mereka meninggal di usia yang sama persis. Kamu tidak memperpanjang hidup — kamu memperpanjang waktu mereka tahu mereka sakit.\n\nLength-time bias: Skrining menangkap tumor tumbuh lambat (jendela deteksi lebih lama). Tumor agresif membunuh cepat dan lolos dari skrining. Populasi yang diskrining terlihat lebih sehat — tapi kamu menangkap kanker yang kurang berbahaya.\n\nUkuran jujurnya: apakah angka kematian keseluruhan benar-benar turun?" },
+          { heading: "Bias: Penyabotase Tak Terlihat", body: "Setiap studi punya musuh:\n\nRecall bias: Ibu dari bayi dengan cacat lahir mengingat setiap obat yang diminum selama kehamilan. Ibu dari bayi sehat lupa. Sekarang studi kasus-kontrolmu secara palsu menghubungkan obat yang tidak berbahaya dengan cacat.\n\nSelection bias: Kamu mempelajari penyakit jantung di RS besar — tapi pasien di sana lebih sakit dan lebih kaya dari populasi umum. Hasilmu tidak bisa digeneralisasi.\n\nConfounding: Kopi dan penyakit jantung. Merokok terasosiasi dengan KEDUANYA — minum kopi dan penyakit jantung — perancu yang bersembunyi dalam data. Penangkal: randomisasi atau penyesuaian statistik.\n\nEfek Hawthorne: Orang mengubah perilaku karena tahu sedang diteliti. Kedua kelompok membaik — bukan karena obat, tapi karena mereka mulai makan lebih sehat saat bergabung dalam uji coba." },
+          { heading: "Rangkuman untuk Ujian", body: "• RCT = kausalitas. Lainnya = asosiasi.\n• Kohort → RR. Kasus-Kontrol → OR. Potong Lintang → Prevalensi.\n• NNT = 1/ARR. Bandingkan dengan NNH untuk keputusan manfaat-risiko.\n• OR ≈ RR ketika penyakit jarang.\n• Lead-time bias: deteksi dini ≠ hidup lebih lama. Ukur mortalitas.\n• Perancu = terasosiasi dengan paparan DAN outcome.\n• ITT menganalisis semua sesuai penempatan — mempertahankan randomisasi." }
+        ]
+      }
+    };
+
+    const SECTION_QUIZZES = {
+      descriptive: [
+        { q: "Dataset usia pasien memiliki mean 65 dan median 58. Apa yang ditunjukkan ini?", options: ["Miring kiri", "Miring kanan", "Simetris", "Bimodal"], correct: 1, explanation: "Mean > median berarti pencilan di sisi atas menarik mean ke atas — miring kanan." },
+        { q: "Dalam distribusi miring kanan dari biaya RS, mana yang paling mewakili tagihan 'tipikal'?", options: ["Mean", "Median", "Modus", "Standar deviasi"], correct: 1, explanation: "Median resisten terhadap pencilan dan lebih mewakili pusat data yang miring." },
+        { q: "Jika setiap sistolik pasien naik 10 mmHg, apa yang terjadi pada standar deviasi?", options: ["Naik 10", "Berlipat ganda", "Tetap sama", "Turun 10"], correct: 2, explanation: "Menambahkan konstanta menggeser distribusi tapi tidak mengubah sebaran." },
+        { q: "Nilai: 10, 12, 12, 14, 50. Mana yang paling terpengaruh pencilan?", options: ["Median", "Modus", "Mean", "IQR"], correct: 2, explanation: "Mean = 19,6, tertarik jauh dari kelompok oleh 50. Median (12) dan modus (12) tetap stabil." },
+        { q: "Obat A: mean penurunan LDL, SD=5. Obat B: mean sama, SD=20. Mana lebih bisa diprediksi?", options: ["Obat A", "Obat B", "Sama", "Tidak bisa ditentukan"], correct: 0, explanation: "SD lebih rendah = variabilitas lebih kecil = hasil lebih konsisten dan bisa diprediksi." },
+      ],
+      distributions: [
+        { q: "Berapa persen nilai yang berada dalam \u00b12\u03c3 pada distribusi normal?", options: ["68%", "90%", "95%", "99,7%"], correct: 2, explanation: "Aturan 68-95-99,7: ~95% dalam \u00b12\u03c3. Ini dasar rentang referensi laboratorium." },
+        { q: "Referensi hemoglobin: mean=14, SD=1. Pasien punya 11 g/dL. Berapa SD di bawah?", options: ["1", "2", "3", "4"], correct: 2, explanation: "Z = (11-14)/1 = -3. Tiga SD di bawah — di luar 99,7% populasi." },
+        { q: "Mana yang BUKAN sifat distribusi normal?", options: ["Mean = Median = Modus", "Didefinisikan oleh \u03bc dan \u03c3", "Selalu miring kanan", "Luas di bawah kurva = 1"], correct: 2, explanation: "Distribusi normal simetris sempurna — tidak pernah miring." },
+        { q: "Saat ukuran sampel meningkat, distribusi sampling mean menjadi lebih normal. Ini disebut:", options: ["Hukum Bilangan Besar", "Teorema Limit Pusat", "Teorema Bayes", "Regresi ke Mean"], correct: 1, explanation: "TLP menyatakan distribusi sampling mendekati normal saat n meningkat (n \u2265 30)." },
+        { q: "Menaikkan \u03c3 dengan \u03bc tetap membuat kurva:", options: ["Lebih tinggi dan sempit", "Lebih pendek dan lebar", "Bergeser ke kanan", "Lebih miring"], correct: 1, explanation: "Lebih tersebar dengan luas total sama = lebih pendek dan lebar." },
+      ],
+      probability: [
+        { q: "Tes: sensitivitas 99%, spesifisitas 99%. Prevalensi: 1%. Perkiraan NPP?", options: ["99%", "90%", "50%", "33%"], correct: 2, explanation: "Dalam 10.000: 100 sakit \u2192 99 PB. 9.900 sehat \u2192 99 PP. NPP = 99/198 = 50%." },
+        { q: "Teorema Bayes menghubungkan probabilitas pre-test ke post-test menggunakan:", options: ["Sensitivitas dan spesifisitas", "Rasio kemungkinan", "A dan B keduanya bisa", "Standar deviasi"], correct: 2, explanation: "Kedua metode berhasil: pendekatan tabel 2\u00d72 atau pendekatan LR memberikan jawaban sama." },
+        { q: "Prevalensi 5%, LR+ = 10. Probabilitas post-test setelah tes positif?", options: ["15%", "34%", "50%", "90%"], correct: 1, explanation: "Odds pre-test = 0,053. Odds post-test = 0,053 \u00d7 10 = 0,53. Prob post-test \u2248 34%." },
+        { q: "Skenario mana yang memberikan NPP TERTINGGI?", options: ["Prevalensi tinggi + spesifisitas tinggi", "Prevalensi rendah + sensitivitas tinggi", "Prevalensi rendah + spesifisitas tinggi", "Prevalensi tinggi + spesifisitas rendah"], correct: 0, explanation: "NPP dipengaruhi prevalensi (lebih banyak PB) dan spesifisitas (lebih sedikit PP)." },
+        { q: "Dua kejadian independen, masing-masing P = 0,1. P(keduanya terjadi)?", options: ["0,2", "0,1", "0,01", "0,02"], correct: 2, explanation: "P(A DAN B) = P(A) \u00d7 P(B) = 0,1 \u00d7 0,1 = 0,01 untuk kejadian independen." },
+      ],
+      hypothesis: [
+        { q: "Sebuah studi melaporkan p = 0,03. Ini berarti:", options: ["3% kemungkinan H\u2080 benar", "3% kemungkinan hasil ini jika H\u2080 benar", "Obat bekerja dengan 97% kepastian", "Ukuran efek besar"], correct: 1, explanation: "P-value = probabilitas data jika H\u2080 benar. BUKAN probabilitas H\u2080 benar." },
+        { q: "Gagal menolak H\u2080 padahal obat benar-benar bekerja adalah:", options: ["Kesalahan Tipe I", "Kesalahan Tipe II", "Keputusan benar", "Kesalahan power"], correct: 1, explanation: "Tipe II (\u03b2) = melewatkan efek nyata. Power = 1 - \u03b2." },
+        { q: "Mana yang MENINGKATKAN power statistik?", options: ["Mengurangi n", "Menggunakan \u03b1 = 0,01 bukan 0,05", "Menambah n", "Mengurangi ukuran efek"], correct: 2, explanation: "n lebih besar adalah cara paling praktis untuk meningkatkan power." },
+        { q: "Perbedaan TD 0,5 mmHg, p = 0,001, n = 50.000. Ini adalah:", options: ["Signifikan secara klinis", "Signifikan statistik tapi tidak klinis", "Kesalahan Tipe I", "Kesalahan Tipe II"], correct: 1, explanation: "n besar membuat efek kecil menjadi signifikan. 0,5 mmHg tidak relevan secara klinis." },
+        { q: "\u03b1 = 0,05, 20 tes independen. Jumlah positif palsu yang diharapkan?", options: ["0", "1", "5", "20"], correct: 1, explanation: "0,05 \u00d7 20 = 1 positif palsu yang diharapkan. Ini masalah perbandingan ganda." },
+      ],
+      diagnostic: [
+        { q: "Sensitivitas 100% + hasil negatif berarti:", options: ["Pasien punya penyakit", "Pasien TIDAK punya penyakit", "Tes tidak andal", "Perlu info lebih"], correct: 1, explanation: "Sensitivitas 100% = nol negatif palsu. Negatif menyingkirkan penyakit (SNout)." },
+        { q: "Mana yang paling berguna untuk MENEGAKKAN diagnosis?", options: ["Sensitivitas tinggi", "Spesifisitas tinggi", "NPN tinggi", "Prevalensi rendah"], correct: 1, explanation: "Spesifisitas tinggi = sedikit positif palsu. Hasil positif menegakkan diagnosis (SpIn)." },
+        { q: "LR = 1,0 berarti:", options: ["Tes sempurna", "Tidak ada informasi diagnostik", "Pasien punya penyakit", "Sensitivitas 100%"], correct: 1, explanation: "LR = 1 berarti hasil sama mungkinnya dengan atau tanpa penyakit — tidak berguna." },
+        { q: "Menaikkan prevalensi akan:", options: ["\u2191 NPP, \u2193 NPN", "\u2193 keduanya", "\u2191 keduanya", "Tidak berpengaruh"], correct: 0, explanation: "Lebih banyak penyakit \u2192 lebih banyak PB \u2192 NPP naik, tapi juga lebih banyak NP \u2192 NPN turun." },
+        { q: "Kurva ROC memplot:", options: ["NPP vs NPN", "Sensitivitas vs (1-Spesifisitas)", "Power vs \u03b1", "Insidensi vs prevalensi"], correct: 1, explanation: "ROC menunjukkan tradeoff sensitivitas/tingkat positif palsu. AUC = 0,5 = untung-untungan; 1,0 = sempurna." },
+      ],
+      study: [
+        { q: "Bukti TERKUAT untuk kausalitas?", options: ["Kasus-kontrol", "Kohort", "RCT", "Potong lintang"], correct: 2, explanation: "RCT menggunakan randomisasi untuk menghilangkan perancu — standar emas untuk kausalitas." },
+        { q: "Ukuran asosiasi pada studi kasus-kontrol:", options: ["Risiko Relatif", "Odds Ratio", "Risiko Atribut", "Laju Insidensi"], correct: 1, explanation: "Kasus-kontrol memilih berdasarkan outcome, jadi tidak bisa menghitung insidensi atau RR. Hanya OR." },
+        { q: "Kanker terdeteksi 3 tahun lebih awal, pasien meninggal di usia sama:", options: ["Selection bias", "Recall bias", "Lead-time bias", "Length-time bias"], correct: 2, explanation: "Lead-time bias: diagnosis lebih awal tampak memperpanjang ketahanan hidup tanpa mengubah usia kematian." },
+        { q: "Ibu dari anak yang terkena dampak mengingat lebih banyak penggunaan obat:", options: ["Lead-time bias", "Selection bias", "Recall bias", "Efek Hawthorne"], correct: 2, explanation: "Recall bias: kasus mengingat/melaporkan paparan secara berbeda dari kontrol." },
+        { q: "Kopi \u2192 kanker paru, tapi peminum kopi lebih banyak merokok. Merokok adalah:", options: ["Effect modifier", "Perancu", "Mediator", "Collider"], correct: 1, explanation: "Perancu: terasosiasi dengan paparan dan outcome, bukan pada jalur kausal." },
+      ],
+    }
+
+    const FINAL_QUIZ = [
+      { q: "IMT: \u03bc=25, \u03c3=4. Berapa % populasi dengan IMT di atas 33?", options: ["2,5%", "5%", "16%", "0,15%"], correct: 0, explanation: "33 = \u03bc + 2\u03c3. Sekitar 2,5% berada di atas +2\u03c3 (5% di kedua ekor, 2,5% masing-masing).", domain: "distributions" },
+      { q: "Waktu tunggu UGD: 5, 10, 15, 15, 20, 120 menit. Ringkasan terbaik:", options: ["Mean = 30,8", "Median = 15", "Modus = 15", "SD"], correct: 1, explanation: "Pencilan (120) membuat mean miring. Median (15) lebih mewakili pengalaman tipikal.", domain: "descriptive" },
+      { q: "Dalam suatu penelitian klinis, 5 endpoint diuji secara bersamaan dengan alpha=0,05. Peluang terjadinya minimal satu false positive adalah:", options: ["5%", "10%", "23%", "50%"], correct: 2, explanation: "1 - (0,95)^5 = 0,226 \u2248 23%. Perbandingan ganda meningkatkan positif palsu.", domain: "hypothesis" },
+      { q: "Tes HIV (sens/spes 99,5%), prevalensi 0,1%. NPP \u2248:", options: ["95%", "67%", "17%", "50%"], correct: 2, explanation: "Per 100K: 100 PB, ~500 PP. NPP \u2248 100/600 \u2248 17%. Prevalensi rendah menghancurkan NPP.", domain: "probability" },
+      { q: "p = 0,04, 95% CI: \u22122 sampai +8 mmHg. Interpretasi:", options: ["Obat berhasil", "CI bertentangan dengan p-value", "Tidak ada efek bermakna klinis yang terkonfirmasi", "Obat tidak berhasil"], correct: 2, explanation: "CI melewati nol — efek sebenarnya bisa nol atau negatif. Bukti tidak cukup.", domain: "hypothesis" },
+      { q: "10K perokok, 10K bukan perokok. 200 vs 20 kena kanker paru. RR:", options: ["10", "100", "0,1", "180"], correct: 0, explanation: "RR = (200/10000)/(20/10000) = 0,02/0,002 = 10. Perokok punya 10\u00d7 risiko.", domain: "study" },
+      { q: "ARR = 2%, NNT = 50 berarti:", options: ["Penurunan risiko relatif 2%", "Obati 50 agar 1 mendapat manfaat", "50% mendapat manfaat", "Efikasi 2%"], correct: 1, explanation: "NNT = 1/ARR = 1/0,02 = 50. Obati 50 pasien agar 1 mendapat manfaat tambahan.", domain: "study" },
+      { q: "Skrining mendeteksi kanker 2 tahun lebih awal. Ketahanan 5 tahun membaik tapi usia kematian tidak berubah:", options: ["Manfaat nyata", "Lead-time bias", "Length-time bias", "Selection bias"], correct: 1, explanation: "Lead-time bias: memajukan diagnosis membuat waktu ketahanan tampak lebih lama.", domain: "study" },
+      { q: "LR+ = 15, prob pre-test = 10%. Probabilitas post-test setelah positif:", options: ["15%", "40%", "63%", "90%"], correct: 2, explanation: "Odds pre-test = 0,111. \u00d7 15 = 1,667. Prob post-test = 1,667/2,667 \u2248 63%.", domain: "diagnostic" },
+      { q: "Lebar 95% confidence interval pada hasil penelitian dapat meningkat (melebar) apabila:", options: ["\u2191 ukuran sampel", "\u2193 variansi", "\u2193 ukuran sampel", "\u2191 \u03b1 ke 0,10"], correct: 2, explanation: "Lebar CI \u221d \u03c3/\u221an. n lebih kecil \u2192 SE lebih besar \u2192 CI lebih lebar.", domain: "hypothesis" },
+      { q: "Studi kasus-kontrol untuk cacat lahir langka tepat karena:", options: ["Menegakkan kausalitas", "Menghitung insidensi", "Efisien mempelajari outcome langka", "Menghilangkan recall bias"], correct: 2, explanation: "Mulai dari kasus yang diketahui — tidak perlu mengikuti ribuan untuk menemukan outcome langka.", domain: "study" },
+      { q: "Statin baru: LDL \u21935 mg/dL, p=0,0001, n=50.000:", options: ["Sangat efektif", "Signifikan statistik tapi tidak klinis", "Kesalahan Tipe I", "Harus menggantikan standar perawatan"], correct: 1, explanation: "n besar membuat efek kecil signifikan. Penurunan LDL 5 mg/dL manfaatnya minimal.", domain: "hypothesis" },
+      { q: "Sensitivitas 95%, spesifisitas 80%. Mana yang benar?", options: ["5% pasien sakit terlewat", "20% orang sehat tes positif", "A dan B keduanya", "Tidak keduanya"], correct: 2, explanation: "Sensitivitas 95% \u2192 5% tingkat NP. Spesifisitas 80% \u2192 20% tingkat PP. Keduanya benar.", domain: "diagnostic" },
+      { q: "Hasil pemeriksaan indeks massa tubuh (IMT) seorang pasien menunjukkan Z-score 1,5. Interpretasi yang tepat adalah:", options: ["1,5 SD di atas mean", "1,5 SD di bawah mean", "Di persentil ke-15", "Di bawah 95% nilai"], correct: 1, explanation: "Z-score negatif = di bawah mean. \u22121,5 = 1,5 standar deviasi di bawah.", domain: "distributions" },
+      { q: "NNH = 200 berarti:", options: ["200 pasien dirugikan", "1 dari 200 yang diobati mengalami efek samping", "Terlalu berbahaya", "Risiko absolut 2%"], correct: 1, explanation: "NNH = 1/ARI. Setiap 200 yang diobati, 1 tambahan mengalami efek samping dibanding plasebo.", domain: "study" },
+      { q: "TD diukur sebelum dan sesudah pada pasien YANG SAMA. Gunakan:", options: ["Uji-t independen", "Uji-t berpasangan", "Chi-square", "ANOVA"], correct: 1, explanation: "Subjek sama = observasi berpasangan \u2192 uji-t berpasangan. Memperhitungkan variasi individu.", domain: "hypothesis" },
+      { q: "Spesifisitas dihitung sebagai:", options: ["PB/(PB+NP)", "NB/(NB+PP)", "PB/(PB+PP)", "NB/(NB+NP)"], correct: 1, explanation: "Spesifisitas = NB/(NB+PP). Dari semua TANPA penyakit, berapa yang tes negatif?", domain: "diagnostic" },
+      { q: "Sebuah penelitian obat antihipertensi memiliki statistical power sebesar 60%. Pernyataan ini berarti:", options: ["60% peluang menemukan efek nyata", "40% kesalahan Tipe I", "60% tingkat kepercayaan", "60% sampel memadai"], correct: 0, explanation: "Power = 1-\u03b2 = probabilitas mendeteksi efek nyata. 60% = 40% peluang kesalahan Tipe II.", domain: "hypothesis" },
+      { q: "Prevalensi adalah:", options: ["Kasus baru/tahun", "Kasus yang ada / populasi pada satu titik waktu", "Laju perkembangan", "Insidensi kumulatif"], correct: 1, explanation: "Prevalensi = kasus yang ada / total populasi. Insidensi = kasus BARU dalam periode waktu.", domain: "probability" },
+      { q: "95% CI = [2,3; 8,7] untuk perbedaan mean. Interpretasi yang benar:", options: ["95% pasien dalam rentang ini", "95% yakin perbedaan sebenarnya dalam rentang", "95% probabilitas mean ada di sini", "p > 0,05"], correct: 1, explanation: "CI: jika diulang, 95% CI akan mengandung nilai sebenarnya. Tidak melewati nol \u2192 signifikan.", domain: "hypothesis" },
+    ]
+
+    // ========== UTILITIES ==========
+    function mean(arr) { return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0; }
+    function median(arr) { const s = [...arr].sort((a, b) => a - b); const m = Math.floor(s.length / 2); return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; }
+    function mode(arr) { const f = {}; arr.forEach(v => f[v] = (f[v] || 0) + 1); const mx = Math.max(...Object.values(f)); return Object.keys(f).filter(k => f[k] === mx).map(Number); }
+    function stddev(arr) { const m = mean(arr); return Math.sqrt(arr.reduce((s, v) => s + (v - m) ** 2, 0) / arr.length); }
+    function normalPDF(x, mu, sigma) { return (1 / (sigma * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * ((x - mu) / sigma) ** 2); }
+    function normalCDF(x) { const t = 1 / (1 + 0.2316419 * Math.abs(x)); const d = 0.3989422804 * Math.exp(-x * x / 2); const p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.8212560 + t * 1.3302744)))); return x > 0 ? 1 - p : p; }
+
+    // ========== MATERI RENDERER ==========
+    function LessonContent({ moduleId }) {
+      const [expanded, setExpanded] = React.useState(true);
+      const lesson = MATERIS[moduleId];
+      if (!lesson) return null;
+      return (
+        <div style={{ marginBottom: 28 }}>
+          <button onClick={() => setExpanded(!expanded)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", padding: "12px 16px", background: "linear-gradient(135deg, #111827, #0F1A2E)", border: "1px solid var(--border-accent)", borderRadius: expanded ? "10px 10px 0 0" : 10, cursor: "pointer", transition: "all 0.3s" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 16 }}>📖</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--accent)", fontFamily: "var(--font-mono)", letterSpacing: 0.5 }}>MATERI</span>
+            </div>
+            <span style={{ color: "var(--text-muted)", fontSize: 12, fontFamily: "var(--font-mono)" }}>{expanded ? "tutup ▲" : "buka ▼"}</span>
+          </button>
+          {expanded && (
+            <div style={{ padding: "4px 0", background: "linear-gradient(180deg, #111827 0%, #0D0F14 100%)", border: "1px solid var(--border-accent)", borderTop: "none", borderRadius: "0 0 10px 10px" }}>
+              {lesson.sections.map((section, idx) => (
+                <div key={idx} style={{ padding: "16px 18px", borderBottom: idx < lesson.sections.length - 1 ? "1px solid rgba(30,42,58,0.5)" : "none" }}>
+                  <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)", marginBottom: 10, fontFamily: "var(--font-body)", letterSpacing: -0.2 }}>{section.heading}</h3>
+                  {section.body.split("\n\n").map((para, pIdx) => (
+                    <p key={pIdx} style={{ fontSize: 13.5, lineHeight: 1.75, color: "var(--text-secondary)", margin: "0 0 10px", whiteSpace: "pre-wrap" }}>{para}</p>
+                  ))}
+                  {section.definitions && (
+                    <div style={{ marginTop: 12 }}>
+                      {section.definitions.map((d, dIdx) => (
+                        <div key={dIdx} style={{ marginBottom: 8, padding: "10px 14px", background: "rgba(20,22,28,0.7)", borderRadius: 8, borderLeft: "3px solid var(--accent)" }}>
+                          <span style={{ fontWeight: 700, color: "var(--accent)", fontSize: 13, fontFamily: "var(--font-mono)" }}>{d.term}</span>
+                          <span style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.6 }}> — {d.def}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ========== SHARED COMPONENTS ==========
+    function StatCard({ label, value, color }) {
+      return (<div style={{ flex: 1, minWidth: 65, background: "var(--bg-card)", borderRadius: 8, padding: "10px 8px", textAlign: "center", borderTop: `3px solid ${color}` }}><div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1, fontFamily: "var(--font-mono)" }}>{label}</div><div style={{ fontSize: 18, fontWeight: 700, color, marginTop: 4, fontFamily: "var(--font-mono)" }}>{value}</div></div>);
+    }
+    function MiniBar({ data, color = "var(--accent)", height = 120, label }) {
+      const max = Math.max(...data.map(d => d.count), 1);
+      return (<div style={{ marginBottom: 12 }}>{label && <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4, fontFamily: "var(--font-mono)" }}>{label}</div>}<div style={{ display: "flex", alignItems: "flex-end", gap: 2, height }}>{data.map((d, i) => (<div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1 }}><div style={{ width: "100%", maxWidth: 32, background: color, borderRadius: "3px 3px 0 0", height: `${(d.count / max) * (height - 18)}px`, minHeight: 2, transition: "height 0.4s ease" }} /><div style={{ fontSize: 9, color: "var(--text-muted)", marginTop: 2, fontFamily: "var(--font-mono)" }}>{d.label}</div></div>))}</div></div>);
+    }
+    function NormalCurve({ mu, sigma, highlight, width = 320, height = 140 }) {
+      const xMin = mu - 4 * sigma, xMax = mu + 4 * sigma;
+      const points = Array.from({ length: 101 }, (_, i) => { const x = xMin + (i / 100) * (xMax - xMin); return { x, y: normalPDF(x, mu, sigma) }; });
+      const yMax = Math.max(...points.map(p => p.y)) * 1.15;
+      const toSVG = (x, y) => [((x - xMin) / (xMax - xMin)) * width, height - (y / yMax) * (height - 20)];
+      const pathD = points.map((p, i) => { const [sx, sy] = toSVG(p.x, p.y); return `${i === 0 ? "M" : "L"}${sx},${sy}`; }).join(" ");
+      let fillPath = "";
+      if (highlight) { const hPts = points.filter(p => p.x >= highlight[0] && p.x <= highlight[1]); if (hPts.length > 1) { fillPath = `M${toSVG(hPts[0].x, 0)[0]},${height - 10}`; hPts.forEach(p => { const [sx, sy] = toSVG(p.x, p.y); fillPath += ` L${sx},${sy}`; }); fillPath += ` L${toSVG(hPts[hPts.length - 1].x, 0)[0]},${height - 10} Z`; } }
+      return (<svg width={width} height={height} style={{ overflow: "visible" }}>{fillPath && <path d={fillPath} fill="rgba(79,142,247,0.25)" />}<path d={pathD} fill="none" stroke="var(--accent)" strokeWidth={2.5} /><line x1={0} y1={height - 10} x2={width} y2={height - 10} stroke="var(--border)" strokeWidth={1} />{[-3, -2, -1, 0, 1, 2, 3].map(sd => { const [sx] = toSVG(mu + sd * sigma, 0); return <text key={sd} x={sx} y={height} textAnchor="middle" fontSize={9} fill="var(--text-muted)" fontFamily="var(--font-mono)">{sd === 0 ? `μ=${mu}` : `${sd > 0 ? "+" : ""}${sd}σ`}</text>; })}</svg>);
+    }
+    function Vignette({ children }) { return <div style={{ background: "#111827", border: "1px solid var(--border-accent)", borderRadius: 10, padding: "14px 16px", marginBottom: 20, fontSize: 13, lineHeight: 1.6, color: "var(--text-secondary)" }}><span style={{ display: "inline-block", fontSize: 9, textTransform: "uppercase", letterSpacing: 1.5, color: "var(--accent)", background: "var(--bg-accent)", padding: "2px 8px", borderRadius: 4, marginBottom: 8, fontFamily: "var(--font-mono)" }}>Coba sendiri</span>{children}</div>; }
+    function Insight({ children }) { return <div style={{ padding: "12px 14px", background: "linear-gradient(135deg, #111827, #0D1520)", border: "1px solid var(--border-accent)", borderRadius: 10, fontSize: 13, lineHeight: 1.6, color: "var(--text-secondary)" }}>{children}</div>; }
+
+    // ========== QUIZ ==========
+    function Quiz({ questions, onComplete, title, onNext, attemptCount = 0, onRetry }) {
+      const [cur, setCur] = React.useState(0); const [sel, setSel] = React.useState(null); const [showExp, setShowExp] = React.useState(false); const [answers, setAnswers] = React.useState([]); const [done, setDone] = React.useState(false);
+      const [reviewMode, setReviewMode] = React.useState(false);
+
+      const q = questions[cur]; const score = answers.filter((a, i) => a === questions[i].correct).length; const pct = Math.round((score / questions.length) * 100);
+
+      const pick = (i) => { if (showExp || reviewMode) return; setSel(i); setShowExp(true); setAnswers([...answers, i]); };
+      const next = () => {
+        if (cur + 1 >= questions.length) {
+          if (reviewMode) {
+            setReviewMode(false);
+            setCur(0);
+          } else {
+            setDone(true);
+            if (onComplete) onComplete(score, questions.length);
+          }
+        } else {
+          setCur(cur + 1);
+          if (!reviewMode) { setSel(null); setShowExp(false); }
+          else { setSel(answers[cur + 1]); }
+        }
+      };
+
+      if (done && !reviewMode) return (
+        <div style={{ padding: 20, textAlign: "center" }}>
+          <div style={{ fontSize: 48, marginBottom: 12 }}>{pct >= 80 ? "🎉" : pct >= 60 ? "📚" : "💪"}</div>
+          <div style={{ fontSize: 28, fontWeight: 700, color: pct >= 80 ? "var(--green)" : pct >= 60 ? "var(--yellow)" : "var(--red)", fontFamily: "var(--font-mono)" }}>{pct}%</div>
+          <div style={{ fontSize: 14, color: "var(--text-secondary)", margin: "8px 0 20px" }}>{score}/{questions.length} — {pct >= 80 ? "Luar biasa!" : pct >= 60 ? "Dasar yang baik." : "Baca ulang materinya dan coba lagi."}</div>
+          <div style={{ display: "flex", gap: 12, justifyContent: "center", marginTop: 16 }}>
+            {pct < 100 ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "center" }}>
+                <button disabled={attemptCount >= 3} onClick={() => { if (onRetry) onRetry(); else { setCur(0); setSel(null); setShowExp(false); setAnswers([]); setDone(false); } }} style={{ ...btnStyle, background: "var(--bg-card)", border: "1px solid var(--border)", color: attemptCount >= 3 ? "var(--text-muted)" : "var(--text-secondary)", cursor: attemptCount >= 3 ? "not-allowed" : "pointer" }}>Ulangi Kuis ({attemptCount - 1}/2)</button>
+              </div>
+            ) : (
+              <button onClick={() => { setReviewMode(true); setCur(0); setSel(answers[0]); setShowExp(true); }} style={{ ...btnStyle, background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>Lihat Pembahasan</button>
+            )}
+            {onNext && <button onClick={onNext} style={{ ...btnStyle, background: "var(--accent)", alignSelf: "flex-start" }}>Kuis Selanjutnya →</button>}
+          </div>
+          <div style={{ marginTop: 32, fontSize: 20, fontWeight: 600, fontStyle: "italic", color: "#FFFFFF", lineHeight: 1.6, maxWidth: "80%", margin: "32px auto 0", textAlign: "center", textShadow: "0 2px 4px rgba(0,0,0,0.5)" }}>
+            "Angka yang Anda hitung barusan menyelamatkan satu nyawa. Itulah sebaik-baiknya amal (Itqan)."
+          </div>
+        </div>
+      );
+
+      return (
+        <div style={{ marginTop: 24 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: "var(--accent)", marginBottom: 12, fontFamily: "var(--font-mono)" }}>{reviewMode ? "REVIEW PEMBAHASAN" : (title || "KUIS BAB")}</div>
+          <div style={{ display: "flex", gap: 4, marginBottom: 16 }}>{questions.map((_, i) => <div key={i} style={{ flex: 1, height: 4, borderRadius: 2, background: (i < answers.length || reviewMode) ? (answers[i] === questions[i].correct ? "var(--green)" : "var(--red)") : i === cur ? "var(--accent)" : "var(--border)" }} />)}</div>
+          <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "var(--font-mono)", marginBottom: 8 }}>Q {cur + 1}/{questions.length}</div>
+          <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text-primary)", lineHeight: 1.5, marginBottom: 16 }}>{q.q}</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
+            {q.options.map((opt, i) => {
+              let bg = "var(--bg-card)", border = "var(--border)", color = "var(--text-primary)";
+              if (showExp || reviewMode) {
+                if (i === sel) {
+                  if (i === q.correct) { bg = "#122E1B"; border = "var(--green)"; color = "var(--green)"; }
+                  else { bg = "#2E1216"; border = "var(--red)"; color = "var(--red)"; }
+                }
+              } else if (i === sel) {
+                bg = "var(--bg-accent)"; border = "var(--accent)";
+              }
+              return <button key={i} onClick={() => pick(i)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", borderRadius: 8, border: `1.5px solid ${border}`, background: bg, color, fontSize: 13, cursor: (showExp || reviewMode) ? "default" : "pointer", textAlign: "left", fontFamily: "var(--font-body)", transition: "all 0.2s", lineHeight: 1.4 }}><span style={{ fontFamily: "var(--font-mono)", fontWeight: 700, fontSize: 12, opacity: 0.6, flexShrink: 0 }}>{String.fromCharCode(65 + i)}</span>{opt}{(showExp || reviewMode) && i === sel && i === q.correct && <span style={{ marginLeft: "auto" }}>✓</span>}{(showExp || reviewMode) && i === sel && i !== q.correct && <span style={{ marginLeft: "auto" }}>✗</span>}</button>;
+            })}
+          </div>
+
+          {(showExp || reviewMode) && <button onClick={next} style={{ ...btnStyle, background: "var(--accent)", width: "100%" }}>{cur + 1 >= questions.length ? (reviewMode ? "Selesai Review" : "Lihat Hasil") : "Pertanyaan Berikutnya →"}</button>}
+        </div>
+      );
+    }
+    const btnStyle = { padding: "10px 20px", borderRadius: 8, border: "none", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font-mono)" };
+
+    // ========== INTERACTIVE MODULES ==========
+    function DescriptiveModule() {
+      const presets = { symmetric: [2, 3, 4, 4, 5, 5, 5, 6, 6, 7, 7, 8], rightSkew: [1, 1, 2, 2, 2, 3, 3, 4, 5, 8, 12, 20], leftSkew: [1, 5, 8, 9, 9, 10, 10, 10, 11, 11, 12, 12], bimodal: [1, 2, 2, 3, 3, 3, 8, 8, 8, 9, 9, 10] };
+      const [ds, setDs] = React.useState("symmetric"); const [custom, setCustom] = React.useState("");
+      const data = custom.trim() ? custom.split(",").map(Number).filter(n => !isNaN(n)) : presets[ds];
+      const bins = React.useMemo(() => { if (!data.length) return []; const mn = Math.min(...data), mx = Math.max(...data), r = mx - mn || 1, nB = Math.min(10, Math.max(4, Math.ceil(r))), bW = r / nB; const b = Array.from({ length: nB }, (_, i) => ({ label: Math.round(mn + i * bW + bW / 2), count: 0 })); data.forEach(v => { let idx = Math.floor((v - mn) / bW); if (idx >= nB) idx = nB - 1; b[idx].count++; }); return b; }, [data]);
+      const m = data.length ? mean(data) : 0, med = data.length ? median(data) : 0, mod = data.length ? mode(data) : [], sd = data.length ? stddev(data) : 0;
+      return (<div><Vignette>Pilih distribusi atau masukkan datamu sendiri untuk melihat bagaimana mean, median, modus, dan SD merespons.</Vignette><div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>{Object.keys(presets).map(k => <button key={k} onClick={() => { setDs(k); setCustom(""); }} style={{ ...S.chip, ...(ds === k && !custom.trim() ? S.chipActive : {}) }}>{k === "rightSkew" ? "Miring kanan" : k === "leftSkew" ? "Miring kiri" : k.charAt(0).toUpperCase() + k.slice(1)}</button>)}</div><input placeholder="Atau masukkan nilai: 3, 5, 7, 9, ..." value={custom} onChange={e => setCustom(e.target.value)} style={S.input} />{data.length > 0 && <><MiniBar data={bins} label="Distribusi frekuensi" /><div style={S.statRow}><StatCard label="Mean" value={m.toFixed(2)} color="var(--accent)" /><StatCard label="Median" value={med.toFixed(2)} color="var(--red)" /><StatCard label="Modus" value={mod.join(", ")} color="var(--green)" /><StatCard label="SD" value={sd.toFixed(2)} color="var(--yellow)" /></div><Insight>{m > med + 0.5 ? "💡 Mean > Median → miring kanan. Pencilan menarik mean ke atas." : m < med - 0.5 ? "💡 Mean < Median → miring kiri." : "💡 Mean ≈ Median → kurang lebih simetris."}</Insight></>}</div>);
+    }
+    function DistributionsModule() {
+      const [mu, setMu] = React.useState(100), [sigma, setSigma] = React.useState(15), [sdR, setSdR] = React.useState(1);
+      const lo = mu - sdR * sigma, hi = mu + sdR * sigma, pct = sdR === 1 ? "68.2%" : sdR === 2 ? "95.4%" : "99.7%";
+      return (<div><Vignette>Atur μ dan σ untuk mengubah bentuk kurva. Pilih ±1/2/3σ untuk disorot.</Vignette><div style={{ marginBottom: 16 }}><label style={S.sliderLabel}>μ: {mu}</label><input type="range" min={50} max={150} value={mu} onChange={e => setMu(+e.target.value)} style={S.slider} /><label style={S.sliderLabel}>σ: {sigma}</label><input type="range" min={5} max={40} value={sigma} onChange={e => setSigma(+e.target.value)} style={S.slider} /></div><NormalCurve mu={mu} sigma={sigma} highlight={[lo, hi]} /><div style={{ display: "flex", gap: 8, marginTop: 12, marginBottom: 8 }}>{[1, 2, 3].map(n => <button key={n} onClick={() => setSdR(n)} style={{ ...S.chip, ...(sdR === n ? S.chipActive : {}) }}>±{n}σ → {n === 1 ? "68%" : n === 2 ? "95%" : "99.7%"}</button>)}</div><Insight>💡 {pct} nilai berada di antara {lo.toFixed(0)} and {hi.toFixed(0)}.{sdR === 2 ? " Dasar untuk CI 95%." : sdR === 1 ? " Melampaui ±2σ = 'abnormal' di banyak tes lab." : ""}</Insight></div>);
+    }
+    function ProbabilityModule() {
+      const [prev, setPrev] = React.useState(5), [sens, setSens] = React.useState(90), [spec, setSpec] = React.useState(95);
+      const p = prev / 100, sn = sens / 100, sp = spec / 100, pop = 10000;
+      const d = Math.round(pop * p), h = pop - d, tp = Math.round(d * sn), fn = d - tp, fp = Math.round(h * (1 - sp)), tn = h - fp;
+      const ppv = tp / (tp + fp) || 0, npv = tn / (tn + fn) || 0;
+      return (<div><Vignette>Geser slider untuk melihat bagaimana prevalensi, sensitivitas, dan spesifisitas mempengaruhi NPP dan NPN.</Vignette><div style={{ marginBottom: 16 }}><label style={S.sliderLabel}>Prevalensi: {prev}%</label><input type="range" min={0.1} max={50} step={0.1} value={prev} onChange={e => setPrev(+e.target.value)} style={S.slider} /><label style={S.sliderLabel}>Sensitivitas: {sens}%</label><input type="range" min={50} max={100} value={sens} onChange={e => setSens(+e.target.value)} style={S.slider} /><label style={S.sliderLabel}>Spesifisitas: {spec}%</label><input type="range" min={50} max={100} value={spec} onChange={e => setSpec(+e.target.value)} style={S.slider} /></div><table style={S.table}><thead><tr><th style={S.th}></th><th style={S.th}>D+</th><th style={S.th}>D−</th></tr></thead><tbody><tr><td style={S.td}>T+</td><td style={{ ...S.td, color: "var(--green)", fontWeight: 700 }}>{tp}</td><td style={{ ...S.td, color: "var(--red)", fontWeight: 700 }}>{fp}</td></tr><tr><td style={S.td}>T−</td><td style={{ ...S.td, color: "var(--red)", fontWeight: 700 }}>{fn}</td><td style={{ ...S.td, color: "var(--green)", fontWeight: 700 }}>{tn}</td></tr></tbody></table><div style={{ fontSize: 11, color: "var(--text-muted)", margin: "4px 0 12px", fontFamily: "var(--font-mono)" }}>Dari {pop.toLocaleString()}</div><div style={S.statRow}><StatCard label="PPV" value={`${(ppv * 100).toFixed(1)}%`} color="var(--accent)" /><StatCard label="NPV" value={`${(npv * 100).toFixed(1)}%`} color="var(--green)" /></div><Insight>💡 {prev <= 2 ? `With ${prev}% prevalence, PPV is just ${(ppv * 100).toFixed(1)}%. Kebanyakan positif adalah palsu!` : `At ${prev}% prevalence, PPV = ${(ppv * 100).toFixed(1)}%. Probabilitas pre-test itu penting.`}</Insight></div>);
+    }
+    function HypothesisModule() {
+      const [n, setN] = React.useState(30), [eff, setEff] = React.useState(5), [alpha, setAlpha] = React.useState(0.05);
+      const se = 15 / Math.sqrt(n), z = eff / se, pVal = Math.max(0.0001, 2 * (1 - normalCDF(Math.abs(z))));
+      const power = normalCDF(z - 1.96) * 100, sig = pVal < alpha;
+      return (<div><Vignette>Atur ukuran sampel dan efek untuk melihat p-value dan power berubah secara real-time.</Vignette><div style={{ marginBottom: 16 }}><label style={S.sliderLabel}>n: {n}</label><input type="range" min={5} max={200} value={n} onChange={e => setN(+e.target.value)} style={S.slider} /><label style={S.sliderLabel}>Efek (mmHg): {eff}</label><input type="range" min={0} max={20} value={eff} onChange={e => setEff(+e.target.value)} style={S.slider} /><label style={S.sliderLabel}>α:</label><div style={{ display: "flex", gap: 8 }}>{[0.01, 0.05, 0.10].map(a => <button key={a} onClick={() => setAlpha(a)} style={{ ...S.chip, ...(alpha === a ? S.chipActive : {}) }}>{a}</button>)}</div></div><div style={S.statRow}><StatCard label="p-value" value={pVal < 0.001 ? "<0.001" : pVal.toFixed(4)} color={sig ? "var(--green)" : "var(--red)"} /><StatCard label="Power" value={`${Math.min(power, 99.9).toFixed(1)}%`} color={power > 80 ? "var(--green)" : "var(--yellow)"} /><StatCard label="Hasil" value={sig ? "Tolak H₀" : "Gagal menolak"} color={sig ? "var(--green)" : "var(--text-muted)"} /></div><NormalCurve mu={140} sigma={se} highlight={eff > 0 ? [140 - eff - 2 * se, 140 - eff + 2 * se] : null} width={320} height={120} /><Insight>{!sig ? `💡 p=${pVal.toFixed(3)} > α. Tidak signifikan. ↑ n atau ukuran efek.` : power < 80 ? `💡 Signifikan tapi power hanya ${power.toFixed(0)}% — kurang power.` : `💡 Signifikan dengan power baik (${power.toFixed(0)}%).`}</Insight></div>);
+    }
+    function DiagnosticModule() {
+      const [sens, setSens] = React.useState(95), [spec, setSpec] = React.useState(90), [prev, setPrev] = React.useState(10);
+      const pop = 1000, d = Math.round(pop * prev / 100), h = pop - d;
+      const tp = Math.round(d * sens / 100), fn = d - tp, fp = Math.round(h * (1 - spec / 100)), tn = h - fp;
+      const ppv = tp / (tp + fp) || 0, npv = tn / (tn + fn) || 0, lrp = (sens / 100) / (1 - spec / 100), lrn = (1 - sens / 100) / (spec / 100);
+      return (<div><Vignette>Atur karakteristik tes dan prevalensi untuk melihat tabel 2×2 lengkap diperbarui.</Vignette><div style={{ marginBottom: 16 }}><label style={S.sliderLabel}>Sensitivitas: {sens}%</label><input type="range" min={50} max={100} value={sens} onChange={e => setSens(+e.target.value)} style={S.slider} /><label style={S.sliderLabel}>Spesifisitas: {spec}%</label><input type="range" min={50} max={100} value={spec} onChange={e => setSpec(+e.target.value)} style={S.slider} /><label style={S.sliderLabel}>Prevalensi: {prev}%</label><input type="range" min={1} max={80} value={prev} onChange={e => setPrev(+e.target.value)} style={S.slider} /></div><table style={S.table}><thead><tr><th style={S.th}></th><th style={S.th}>D+</th><th style={S.th}>D−</th><th style={S.th}>Total</th></tr></thead><tbody><tr><td style={S.td}>T+</td><td style={{ ...S.td, background: "#1B3A2A", color: "var(--green)" }}>{tp}</td><td style={{ ...S.td, background: "#3A1B1B", color: "var(--red)" }}>{fp}</td><td style={S.td}>{tp + fp}</td></tr><tr><td style={S.td}>T−</td><td style={{ ...S.td, background: "#3A1B1B", color: "var(--red)" }}>{fn}</td><td style={{ ...S.td, background: "#1B3A2A", color: "var(--green)" }}>{tn}</td><td style={S.td}>{fn + tn}</td></tr><tr><td style={{ ...S.td, fontWeight: 700 }}>Total</td><td style={S.td}>{d}</td><td style={S.td}>{h}</td><td style={S.td}>{pop}</td></tr></tbody></table><div style={S.statRow}><StatCard label="PPV" value={`${(ppv * 100).toFixed(1)}%`} color="var(--accent)" /><StatCard label="NPV" value={`${(npv * 100).toFixed(1)}%`} color="var(--green)" /><StatCard label="LR+" value={lrp.toFixed(1)} color="var(--yellow)" /><StatCard label="LR−" value={lrn.toFixed(3)} color="var(--red)" /></div><div style={{ marginTop: 12, padding: 12, background: "var(--bg-card)", borderRadius: 8, fontSize: 12, fontFamily: "var(--font-mono)", color: "var(--text-secondary)" }}><strong>Mnemonik:</strong><br />SpIn = Spesifik + Positif → tegakkan diagnosis<br />SNout = Sensitif + Negatif → singkirkan diagnosis</div></div>);
+    }
+    function StudyModule() {
+      const [sel, setSel] = React.useState(null);
+      const designs = [{ name: "RCT", level: 1, desc: "Standar emas untuk kausalitas.", strengths: "Menegakkan kausalitas", weaknesses: "Mahal, kendala etis", measure: "Risiko Relatif" }, { name: "Cohort", level: 2, desc: "Ikuti yang terpapar vs tidak terpapar ke depan.", strengths: "Menghitung insidensi & RR", weaknesses: "Perancu, loss to follow-up", measure: "Risiko Relatif" }, { name: "Case-Control", level: 3, desc: "Kasus vs kontrol, lihat ke belakang.", strengths: "Efisien untuk penyakit langka", weaknesses: "Recall bias, tidak bisa hitung insidensi", measure: "Odds Ratio" }, { name: "Cross-Sectional", level: 4, desc: "Potret dalam satu waktu.", strengths: "Cepat, mengukur prevalensi", weaknesses: "Tidak ada temporalitas → tidak ada kausalitas", measure: "Prevalence, OR" }, { name: "Case Series", level: 5, desc: "Laporan deskriptif kasus serupa.", strengths: "Menghasilkan hipotesis", weaknesses: "Tidak ada kelompok kontrol", measure: "Tidak ada" }];
+      const biases = [{ name: "Selection Bias", ex: "Studi RS terlalu mewakili kasus berat." }, { name: "Recall Bias", ex: "Kasus mengingat paparan lebih dari kontrol." }, { name: "Lead-Time Bias", ex: "Deteksi lebih awal tampak memperpanjang ketahanan hidup." }, { name: "Length-Time Bias", ex: "Skrining menangkap tumor yang tumbuh lambat." }, { name: "Confounding", ex: "Kopi → kanker? Tidak — perokok minum lebih banyak kopi." }];
+      return (<div><Vignette>Ketuk setiap desain studi untuk menjelajahi karakteristiknya.</Vignette><div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 8, fontFamily: "var(--font-mono)" }}>HIERARKI BUKTI</div>{designs.map((d, i) => <div key={d.name} onClick={() => setSel(sel === i ? null : i)} style={{ padding: "10px 14px", marginBottom: 4, background: sel === i ? "var(--bg-accent)" : "var(--bg-card)", border: `1px solid ${sel === i ? "var(--accent)" : "var(--border)"}`, borderRadius: 8, cursor: "pointer", transition: "all 0.2s" }}><div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ fontWeight: 600, color: "var(--text-primary)", fontSize: 14 }}><span style={{ color: "var(--accent)", marginRight: 8, fontFamily: "var(--font-mono)", fontSize: 12 }}>L{d.level}</span>{d.name}</span><span style={{ color: "var(--accent)" }}>{sel === i ? "−" : "+"}</span></div>{sel === i && <div style={{ marginTop: 10, fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.6 }}><p style={{ margin: "0 0 6px" }}>{d.desc}</p><p style={{ margin: "0 0 4px" }}><span style={{ color: "var(--green)" }}>✓</span> {d.strengths}</p><p style={{ margin: "0 0 4px" }}><span style={{ color: "var(--red)" }}>✗</span> {d.weaknesses}</p><p style={{ margin: 0 }}><span style={{ color: "var(--yellow)" }}>📏</span> {d.measure}</p></div>}</div>)}<div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 8, marginTop: 16, fontFamily: "var(--font-mono)" }}>BIAS UMUM</div>{biases.map(b => <div key={b.name} style={{ padding: "8px 12px", marginBottom: 4, background: "var(--bg-card)", borderRadius: 6, borderLeft: "3px solid var(--red)" }}><div style={{ fontWeight: 600, color: "var(--text-primary)", fontSize: 13 }}>{b.name}</div><div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>{b.ex}</div></div>)}</div>);
+    }
+
+    // ========== FINAL EXAM RESULTS ==========
+    function FinalExamHasils({ answers, questions, identityData, finalAttempts, onRetry, onViewLeaderboard, quizAttempts }) {
+      const score = answers.filter((a, i) => a === questions[i].correct).length, total = questions.length, pct = Math.round((score / total) * 100), numi = Math.round((score / total) * 1000);
+      const domains = {}; questions.forEach((q, i) => { if (!domains[q.domain]) domains[q.domain] = { correct: 0, total: 0 }; domains[q.domain].total++; if (answers[i] === q.correct) domains[q.domain].correct++; });
+      const tier = numi >= 900 ? { label: "Ahli", color: "var(--green)", desc: "Penguasaan biostatistik yang luar biasa." } : numi >= 750 ? { label: "Mahir", color: "var(--accent)", desc: "Dasar kuat dengan sedikit celah." } : numi >= 600 ? { label: "Berkembang", color: "var(--yellow)", desc: "Dasar memadai — perkuat sebelum ujian." } : { label: "Dasar", color: "var(--red)", desc: "Celah signifikan. Ulangi semua modul." };
+
+      React.useEffect(() => {
+        if (identityData) {
+          const domainArray = MODULES.map(m => domains[m.id] ? domains[m.id].correct : 0);
+          saveResult(numi, domainArray, identityData, quizAttempts);
+        }
+      }, []);
+
+      return (<div style={{ padding: "24px 16px", textAlign: "center" }}>
+        <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 2, color: "var(--text-muted)", fontFamily: "var(--font-mono)", marginBottom: 8, display: "flex", justifyContent: "center", alignItems: "center", gap: 6 }}>
+          INDEKS PEMAHAMAN NUMERIK DALAM KEDOKTERAN
+          <span title={`Percobaan ke-${finalAttempts}`} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 14, height: 14, borderRadius: "50%", background: "var(--bg-card)", border: "1px solid var(--border)", fontSize: 9, color: "var(--text-muted)", cursor: "help", textTransform: "none", letterSpacing: "normal" }}>i</span>
+        </div>
+        <div style={{ fontSize: 64, fontWeight: 700, color: tier.color, fontFamily: "var(--font-mono)", lineHeight: 1 }}>{numi}</div>
+        <div style={{ fontSize: 12, color: "var(--text-muted)", fontFamily: "var(--font-mono)", marginTop: 4 }}>dari 1000</div>
+        <div style={{ display: "inline-block", padding: "4px 16px", borderRadius: 20, background: tier.color + "22", color: tier.color, fontWeight: 700, fontSize: 14, margin: "16px 0 8px", fontFamily: "var(--font-mono)" }}>{tier.label}</div>
+        <div style={{ fontSize: 13, color: "var(--text-secondary)", maxWidth: 340, margin: "0 auto 24px", lineHeight: 1.5 }}>{tier.desc}</div>
+        <div style={{ display: "flex", gap: 8, marginBottom: 20 }}><StatCard label="Benar" value={`${score}/${total}`} color="var(--green)" /><StatCard label="Akurasi" value={`${pct}%`} color="var(--accent)" /><StatCard label="NUMi" value={numi} color={tier.color} /></div>
+        <div style={{ textAlign: "left", marginBottom: 20 }}><div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 1.5, color: "var(--text-muted)", fontFamily: "var(--font-mono)", marginBottom: 10 }}>RINCIAN PER DOMAIN</div>{Object.entries(domains).map(([domain, data]) => { const dpct = Math.round((data.correct / data.total) * 100); const mod = MODULES.find(m => m.id === domain); return (<div key={domain} style={{ marginBottom: 10 }}><div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4, color: "var(--text-primary)" }}><span>{mod?.icon} {mod?.title || domain}</span><span style={{ fontFamily: "var(--font-mono)", color: dpct >= 80 ? "var(--green)" : dpct >= 60 ? "var(--yellow)" : "var(--red)" }}>{data.correct}/{data.total} ({dpct}%)</span></div><div style={{ height: 6, background: "var(--border)", borderRadius: 3, overflow: "hidden" }}><div style={{ height: "100%", width: `${dpct}%`, background: dpct >= 80 ? "var(--green)" : dpct >= 60 ? "var(--yellow)" : "var(--red)", borderRadius: 3, transition: "width 0.5s ease" }} /></div></div>); })}</div>
+        <div style={{ padding: 14, background: "var(--bg-card)", borderRadius: 10, textAlign: "left", fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.6, borderLeft: `3px solid ${tier.color}`, marginBottom: 24 }}><strong style={{ color: "var(--text-primary)" }}>Interpretasi NUMi</strong><br />900–1000: Ahli<br />750–899: Mahir<br />600–749: Berkembang<br />Di bawah 600: Dasar</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 24 }}>
+          <button onClick={onRetry} style={{ padding: "14px", borderRadius: 10, border: "1px solid var(--accent)", background: "transparent", color: "var(--accent)", cursor: "pointer", fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 600, transition: "all 0.2s" }}>↻ Ulangi Ujian Akhir</button>
+          <button onClick={onViewLeaderboard} style={{ padding: "14px", borderRadius: 10, border: "none", background: "var(--accent)", color: "#fff", cursor: "pointer", fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 600, transition: "all 0.2s" }}>🏆 Lihat Papan Skor</button>
+        </div>
+      </div>);
+    }
+
+    // ========== IDENTITY FORM ==========
+    function IdentityForm({ onStart, identity }) {
+      const [name, setName] = React.useState(identity?.name || "");
+      const [npm, setNpm] = React.useState(identity?.npm || "");
+      const [batch, setBatch] = React.useState(identity?.batch || "");
+
+      const handleSubmit = (e) => {
+        e.preventDefault();
+        if (name.trim() && npm.trim() && batch.trim()) {
+          onStart({ name, npm, batch });
+        }
+      };
+
+      const formInputStyle = { width: "100%", background: "var(--bg)", border: "1px solid #2E3340", borderRadius: 10, padding: "12px 14px", color: "var(--text-primary)", fontFamily: "var(--font-body)", fontSize: 15, outline: "none", transition: "border-color 0.2s" };
+      const labelStyle = { display: "block", fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--text-secondary)", marginBottom: 7 };
+
+      return (
+        <div style={{ animation: "fadeUp 0.35s ease" }}>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--accent)", marginBottom: 8 }}>LANGKAH 1 DARI 7</div>
+          <h2 style={{ fontFamily: "'Syne', sans-serif", fontSize: 28, fontWeight: 800, lineHeight: 1.15, marginBottom: 10, color: "var(--text-primary)" }}>Selamat datang di Ujian Biostatistik</h2>
+          <p style={{ fontSize: 15, color: "var(--text-secondary)", lineHeight: 1.65, maxWidth: 540, marginBottom: 32 }}>Ujian ini mencakup 7 domain biostatistik. Masukkan identitas Anda untuk memulai. Data hasil ujian akan disimpan secara otomatis.</p>
+
+          <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, padding: 24, marginBottom: 16 }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 12 }}>Data Peserta</div>
+            <form id="identity-form" onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+              <div>
+                <label style={labelStyle}>Nama Lengkap</label>
+                <input type="text" value={name} onChange={e => setName(e.target.value)} required style={formInputStyle} placeholder="Contoh: dr. Andi Pratama" />
+              </div>
+              <div>
+                <label style={labelStyle}>NPM / NIM</label>
+                <input type="text" value={npm} onChange={e => setNpm(e.target.value)} required style={formInputStyle} placeholder="Contoh: 2021-123-456" />
+              </div>
+              <div>
+                <label style={labelStyle}>Angkatan</label>
+                <select value={batch} onChange={e => setBatch(e.target.value)} required style={formInputStyle}>
+                  <option value="" disabled>— Pilih angkatan —</option>
+                  <option value="2022">2022</option>
+                  <option value="2023">2023</option>
+                  <option value="2024">2024</option>
+                  <option value="2025">2025</option>
+                </select>
+              </div>
+            </form>
+          </div>
+
+          <div style={{ display: "flex", gap: 12, marginTop: 28, flexWrap: "wrap" }}>
+            <button form="identity-form" type="submit" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "12px 24px", borderRadius: 10, border: "none", cursor: "pointer", fontFamily: "var(--font-mono)", fontSize: 12, letterSpacing: "0.05em", textTransform: "uppercase", transition: "all 0.2s", fontWeight: 500, background: identity ? "var(--green)" : "var(--accent)", color: "#fff" }}>
+              {identity ? "✓ Identitas Tersimpan" : "Mulai Ujian →"}
+            </button>
+          </div>
+        </div>
+      );
+    }
+    // ========== STORAGE & LEADERBOARD ==========
+    const DB_KEY = 'biostatistik_lab_scores';
+    function saveResult(numiScore, domainScoresArray, identityData, quizAttemptsData) {
+      if (!identityData) return;
+      const existing = getAllScores().filter(e => e.npm !== identityData.npm);
+      const entry = {
+        id: Date.now(),
+        name: identityData.name,
+        npm: identityData.npm,
+        angkatan: identityData.batch,
+        numiScore,
+        domainScores: domainScoresArray,
+        quizAttempts: quizAttemptsData || {},
+        timestamp: new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+      };
+
+      existing.push(entry);
+      localStorage.setItem(DB_KEY, JSON.stringify(existing));
+
+      fetch('/api/save-score', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(entry)
+      }).catch(err => console.error("Failed to sync score to global DB", err));
+    }
+    function getAllScores() {
+      try { return JSON.parse(localStorage.getItem(DB_KEY)) || []; } catch { return []; }
+    }
+    function clearAllScores(callback) {
+      if (confirm('Hapus semua data skor? Tindakan ini tidak dapat dibatalkan.')) {
+        localStorage.removeItem(DB_KEY);
+        if (callback) callback();
+      }
+    }
+
+    function Leaderboard() {
+      const [data, setData] = React.useState(getAllScores().sort((a, b) => b.numiScore - a.numiScore));
+      const [loading, setLoading] = React.useState(true);
+
+      React.useEffect(() => {
+        fetch('/api/get-scores')
+          .then(res => res.json())
+          .then(globalScores => {
+            if (Array.isArray(globalScores)) {
+              const localScores = getAllScores();
+              const merged = [...localScores];
+              const localIds = new Set(localScores.map(s => s.id));
+              globalScores.forEach(s => {
+                if (!localIds.has(s.id)) {
+                  merged.push(s);
+                }
+              });
+              
+              const npmMap = new Map();
+              merged.sort((a, b) => a.id - b.id).forEach(item => {
+                npmMap.set(item.npm, item);
+              });
+              const finalData = Array.from(npmMap.values()).sort((a, b) => b.numiScore - a.numiScore);
+              
+              setData(finalData);
+              localStorage.setItem(DB_KEY, JSON.stringify(finalData));
+            }
+            setLoading(false);
+          })
+          .catch(err => {
+            console.error("Failed to fetch global scores", err);
+            setLoading(false);
+          });
+      }, []);
+
+      const exportData = () => {
+        if (!data || data.length === 0) return;
+
+        const separator = ";";
+        let csv = "Peringkat;Nama;NPM;Angkatan;Skor NUMI";
+        MODULES.forEach(m => csv += separator + m.title);
+        csv += separator + "Waktu Selesai\n";
+
+        data.forEach((entry, i) => {
+          let row = [
+            i + 1,
+            `"${entry.name}"`,
+            `"${entry.npm}"`,
+            `"${entry.angkatan}"`,
+            entry.numiScore
+          ];
+          entry.domainScores.forEach(s => row.push(s));
+          row.push(`"${entry.timestamp}"`);
+          csv += row.join(separator) + "\n";
+        });
+
+        // Add UTF-8 BOM so Excel automatically recognizes the encoding
+        const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+        const blob = new Blob([bom, csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", "Data_Peserta_Biostatistik.csv");
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      };
+
+      if (data.length === 0) {
+        return (
+          <div style={{ animation: "fadeUp 0.35s ease" }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--accent)", marginBottom: 8 }}>Data Semua Peserta</div>
+            <h2 style={{ fontFamily: "'Syne', sans-serif", fontSize: 28, fontWeight: 800, lineHeight: 1.15, marginBottom: 10, color: "var(--text-primary)" }}>
+              Papan Skor {loading && <span style={{fontSize: 14, color: "var(--text-muted)", marginLeft: 8, fontWeight: 400, fontFamily: "var(--font-mono)"}}>Mengambil data global...</span>}
+            </h2>
+            <p style={{ fontSize: 15, color: "var(--text-secondary)", lineHeight: 1.65, maxWidth: 540, marginBottom: 32 }}>Daftar seluruh mahasiswa yang telah menyelesaikan ujian, diurutkan berdasarkan skor tertinggi.</p>
+            <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, overflow: "hidden" }}>
+              <div className="empty-state">
+                <div className="es-icon">📋</div>
+                Belum ada data peserta yang menyelesaikan ujian.
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div style={{ animation: "fadeUp 0.35s ease" }}>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--accent)", marginBottom: 8 }}>Data Semua Peserta</div>
+          <h2 style={{ fontFamily: "'Syne', sans-serif", fontSize: 28, fontWeight: 800, lineHeight: 1.15, marginBottom: 10, color: "var(--text-primary)" }}>
+            Papan Skor {loading && <span style={{fontSize: 14, color: "var(--text-muted)", marginLeft: 8, fontWeight: 400, fontFamily: "var(--font-mono)"}}>Mengambil data global...</span>}
+          </h2>
+          <p style={{ fontSize: 15, color: "var(--text-secondary)", lineHeight: 1.65, maxWidth: 540, marginBottom: 32 }}>Daftar seluruh mahasiswa yang telah menyelesaikan ujian, diurutkan berdasarkan skor tertinggi.</p>
+          <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, overflow: "hidden", marginBottom: 24, overflowX: "auto" }}>
+            <table className="leaderboard-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Mahasiswa</th>
+                  <th>Angkatan</th>
+                  <th>NUMI</th>
+                  {MODULES.map(m => <th key={m.id} style={{ fontSize: 9 }}>{m.title.split(' ')[0]}</th>)}
+                  <th>Waktu</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.map((entry, i) => {
+                  const rank = i + 1;
+                  const rankClass = rank === 1 ? 'rank-1' : rank === 2 ? 'rank-2' : rank === 3 ? 'rank-3' : 'rank-n';
+                  const scoreClass = entry.numiScore >= 750 ? 'score-high' : entry.numiScore >= 600 ? 'score-mid' : 'score-low';
+                  return (
+                    <tr key={entry.id}>
+                      <td><span className={`rank-badge ${rankClass}`}>{rank}</span></td>
+                      <td><strong>{entry.name}</strong><br /><span style={{ fontSize: 12, color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>{entry.npm}</span></td>
+                      <td style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-muted)" }}>{entry.angkatan}</td>
+                      <td><span className={`score-badge ${scoreClass}`}>{entry.numiScore}</span></td>
+                      {entry.domainScores.map((s, idx) => {
+                        const mId = MODULES[idx].id;
+                        const att = entry.quizAttempts && entry.quizAttempts[mId] ? entry.quizAttempts[mId] : 1;
+                        return (
+                          <td key={idx} style={{ textAlign: "center", fontFamily: "var(--font-mono)", fontSize: 12, color: s >= 4 ? "var(--green)" : s >= 3 ? "var(--yellow)" : "var(--red)" }}>
+                            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 4 }}>
+                              <span>{s}/5</span>
+                              <span title={`${att}x percobaan`} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 14, height: 14, borderRadius: "50%", background: "var(--bg-card)", border: "1px solid var(--border)", fontSize: 9, color: "var(--text-muted)", cursor: "help", fontWeight: "normal" }}>i</span>
+                            </div>
+                          </td>
+                        );
+                      })}
+                      <td style={{ fontSize: 12, color: "var(--text-muted)", fontFamily: "var(--font-mono)", whiteSpace: "nowrap" }}>{entry.timestamp}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <div style={{ display: "flex", gap: 12, marginTop: 28, flexWrap: "wrap" }}>
+            <button onClick={exportData} style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "12px 24px", borderRadius: 10, border: "none", cursor: "pointer", fontFamily: "var(--font-mono)", fontSize: 12, letterSpacing: "0.05em", textTransform: "uppercase", transition: "all 0.2s", fontWeight: 500, background: "var(--accent)", color: "#fff" }}>
+              📊 Export Excel
+            </button>
+            <button onClick={() => clearAllScores(() => setData([]))} style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "12px 24px", borderRadius: 10, border: "1px solid rgba(232,102,90,0.12)", cursor: "pointer", fontFamily: "var(--font-mono)", fontSize: 12, letterSpacing: "0.05em", textTransform: "uppercase", transition: "all 0.2s", fontWeight: 500, background: "transparent", color: "var(--red)" }}>
+              🗑 Hapus Semua Data
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // ========== MAIN APP ==========
+    function BiostatisticsLab() {
+      const [identity, setIdentity] = React.useState(null);
+      const [active, setActive] = React.useState("identitas"); const [sidebar, setSidebar] = React.useState(false); const [showQuiz, setShowQuiz] = React.useState(false); const [scores, setScores] = React.useState({}); const [quizAttempts, setQuizAttempts] = React.useState({}); const [finalMode, setFinalMode] = React.useState(false); const [fAnswers, setFAnswers] = React.useState([]); const [fDone, setFDone] = React.useState(false); const [fCur, setFCur] = React.useState(0); const [fSel, setFSel] = React.useState(null); const [fExp, setFExp] = React.useState(false); const [finalAttempts, setFinalAttempts] = React.useState(1);
+      const completed = Object.keys(scores).length; const allDone = completed === MODULES.length;
+      const onSectionDone = (id) => (s, t) => {
+        setScores(prev => ({ ...prev, [id]: { score: s, total: t } }));
+        setQuizAttempts(prev => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
+      };
+      const shuffled = React.useMemo(() => { const a = [...FINAL_QUIZ]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[a[i], a[j]] = [a[j], a[i]]; } return a; }, [finalMode]);
+      const fPick = (i) => { if (fExp) return; setFSel(i); setFExp(true); setFAnswers([...fAnswers, i]); };
+      const fNext = () => { if (fCur + 1 >= shuffled.length) setFDone(true); else { setFCur(fCur + 1); setFSel(null); setFExp(false); } };
+      const startFinal = () => { setFinalMode(true); setFDone(false); setFAnswers([]); setFCur(0); setFSel(null); setFExp(false); };
+      const handleNextModule = () => {
+        const curIdx = MODULES.findIndex(m => m.id === active);
+        if (curIdx < MODULES.length - 1) {
+          setActive(MODULES[curIdx + 1].id);
+          setShowQuiz(false);
+        } else {
+          startFinal();
+        }
+      };
+      const Comps = { descriptive: DescriptiveModule, distributions: DistributionsModule, probability: ProbabilityModule, hypothesis: HypothesisModule, diagnostic: DiagnosticModule, study: StudyModule };
+      const cur = MODULES.find(m => m.id === active);
+      return (
+        <div style={S.root}>
+          <style>{`
+      :root {
+        --accent: #4F8EF7;
+        --accent-dim: rgba(79,142,247,0.12);
+        --green: #5BC088;
+        --green-dim: rgba(91,192,136,0.12);
+        --red: #E8665A;
+        --red-dim: rgba(232,102,90,0.12);
+        --yellow: #D4A843;
+        --yellow-dim: rgba(212,168,67,0.12);
+        --teal: #38BEC9;
+        --purple: #9B72CF;
+        --bg: #0B0D12;
+        --bg-card: #13161E;
+        --bg-raised: #1A1E28;
+        --border: #252830;
+        --border-light: #2E3340;
+        --text-primary: #E8ECF2;
+        --text-secondary: #8B96A8;
+        --text-muted: #50576A;
+        --font-heading: 'Syne', sans-serif;
+        --font-body: 'Source Serif 4', Georgia, serif;
+        --font-mono: 'DM Mono', monospace;
+        --radius: 10px;
+        --radius-lg: 16px;
+      }
+      *{box-sizing:border-box;}
+      input[type=range]{accent-color:var(--accent);}
+      ::-webkit-scrollbar{height:4px;}
+      ::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+      .site-header { border-bottom: 1px solid var(--border); padding: 0 32px; display: flex; align-items: center; height: 60px; position: sticky; top: 0; background: rgba(11,13,18,0.92); backdrop-filter: blur(12px); z-index: 100; gap: 16px; }
+      .site-header .logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 15px; letter-spacing: 0.04em; color: var(--text-primary); flex-shrink: 0; }
+      .site-header .logo span { color: var(--accent); }
+      .header-divider { width: 1px; height: 20px; background: var(--border); }
+      .header-subtitle { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); letter-spacing: 0.06em; text-transform: uppercase; }
+      .tab-nav { display: flex; border-bottom: 1px solid var(--border); padding: 0 32px; overflow-x: auto; gap: 0; background: var(--bg); scrollbar-width: none; }
+      .tab-nav::-webkit-scrollbar { display: none; }
+      .tab-btn { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-muted); padding: 14px 18px; border: none; background: none; cursor: pointer; position: relative; white-space: nowrap; transition: color 0.2s; flex-shrink: 0; display: flex; align-items: center; gap: 6px; }
+      .tab-btn .tab-num { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 4px; background: var(--border); font-size: 9px; color: var(--text-muted); transition: all 0.2s; }
+      .tab-btn.active { color: var(--accent); }
+      .tab-btn.active .tab-num { background: var(--accent); color: #fff; }
+      .tab-btn.completed { color: var(--green); }
+      .tab-btn.completed .tab-num { background: var(--green); color: #fff; }
+      .tab-btn::after { content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 2px; background: var(--accent); transform: scaleX(0); transition: transform 0.2s; }
+      .tab-btn.active::after { transform: scaleX(1); }
+      .tab-btn.locked { opacity: 0.35; cursor: not-allowed; }
+      .leaderboard-table { width: 100%; border-collapse: collapse; }
+      .leaderboard-table th { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); }
+      .leaderboard-table td { font-size: 14px; padding: 14px; border-bottom: 1px solid var(--border); color: var(--text-primary); }
+      .leaderboard-table tr:last-child td { border-bottom: none; }
+      .leaderboard-table tr:hover td { background: var(--bg-raised); }
+      .rank-badge { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 6px; font-family: var(--font-heading); font-size: 12px; font-weight: 700; }
+      .rank-1 { background: rgba(212,168,67,0.2); color: var(--yellow); }
+      .rank-2 { background: rgba(165,180,200,0.15); color: #A5B4C8; }
+      .rank-3 { background: rgba(149,117,90,0.18); color: #B08060; }
+      .rank-n { background: var(--border); color: var(--text-muted); }
+      .score-badge { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 6px; font-family: var(--font-mono); font-size: 13px; font-weight: 500; }
+      .score-high { background: var(--green-dim); color: var(--green); }
+      .score-mid { background: var(--yellow-dim); color: var(--yellow); }
+      .score-low { background: var(--red-dim); color: var(--red); }
+      .empty-state { text-align: center; padding: 60px 24px; color: var(--text-muted); font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.05em; }
+      .empty-state .es-icon { font-size: 40px; margin-bottom: 12px; }
+      @media (max-width: 600px) { .site-header { padding: 0 16px; } .tab-nav { padding: 0 8px; } }
+      `}</style>
+
+          <header className="site-header">
+            <div className="logo">SMART-MATH <span>MEDICS</span></div>
+            <div className="header-divider"></div>
+            <div className="header-subtitle">UJIAN INTERAKTIF MAHASISWA KEDOKTERAN</div>
+          </header>
+
+          <nav className="tab-nav">
+            <button
+              onClick={() => { setActive("identitas"); setFinalMode(false); setShowQuiz(false); }}
+              className={`tab-btn ${active === "identitas" ? 'active' : ''} ${identity ? 'completed' : ''}`}
+            >
+              <span className="tab-num">1</span> IDENTITAS
+            </button>
+            {MODULES.map((m, idx) => {
+              const isLocked = !identity || (idx > 0 && !scores[MODULES[idx - 1].id]);
+              return (
+                <button
+                  key={m.id}
+                  onClick={() => { if (isLocked) return; setActive(m.id); setFinalMode(false); setShowQuiz(false); }}
+                  className={`tab-btn ${(active === m.id && !finalMode) ? 'active' : ''} ${scores[m.id] ? 'completed' : ''} ${isLocked ? 'locked' : ''}`}
+                >
+                  <span className="tab-num">{idx + 2}</span> {m.title}
+                </button>
+              )
+            })}
+            <button
+              onClick={() => { if (!allDone || !identity) return; startFinal(); setActive("final"); }}
+              className={`tab-btn ${finalMode && active !== "leaderboard" ? 'active' : ''} ${(!allDone || !identity) ? 'locked' : ''}`}
+            >
+              <span className="tab-num">{MODULES.length + 2}</span> UJIAN AKHIR
+            </button>
+            <button
+              onClick={() => { if (!identity) return; setActive("leaderboard"); setFinalMode(false); setShowQuiz(false); }}
+              className={`tab-btn ${active === "leaderboard" ? 'active' : ''} ${!identity ? 'locked' : ''}`}
+            >
+              <span className="tab-num">{MODULES.length + 3}</span> PAPAN SKOR
+            </button>
+          </nav>
+          <div style={S.content}>
+            {active === "identitas" ? (
+              <IdentityForm onStart={(data) => { setIdentity(data); setActive("descriptive"); }} identity={identity} />
+            ) : active === "leaderboard" ? (
+              <Leaderboard />
+            ) : finalMode ? (<div><h2 style={S.moduleTitle}>🏆 Ujian Akhir — NUMi</h2>
+              {!allDone ? (<div style={{ textAlign: "center", padding: 32 }}><div style={{ fontSize: 48, marginBottom: 16 }}>🔒</div><div style={{ fontSize: 16, fontWeight: 600, color: "var(--text-primary)", marginBottom: 8 }}>Selesaikan Semua Kuis Bab Terlebih Dahulu</div><div style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 20, lineHeight: 1.5 }}>{completed}/6 selesai.</div><div style={{ display: "flex", flexDirection: "column", gap: 6, maxWidth: 280, margin: "0 auto" }}>{MODULES.filter(m => !scores[m.id]).map(m => <button key={m.id} onClick={() => { setActive(m.id); setFinalMode(false); setShowQuiz(false); }} style={{ ...S.chip, textAlign: "left", padding: "10px 14px" }}>{m.icon} {m.title}</button>)}</div></div>
+              ) : fDone ? <FinalExamHasils answers={fAnswers} questions={shuffled} identityData={identity} finalAttempts={finalAttempts} onRetry={() => { startFinal(); setFinalAttempts(prev => prev + 1); }} onViewLeaderboard={() => { setActive("leaderboard"); setFinalMode(false); setShowQuiz(false); }} quizAttempts={quizAttempts} /> : (<div>
+                <p style={{ ...S.intro, marginBottom: 8 }}>Ujian komprehensif 20 soal. Skor: 0–1000 <strong>NUMi</strong> scale.</p>
+                <div style={{ padding: 12, background: "var(--bg-card)", borderRadius: 8, fontSize: 12, color: "var(--text-muted)", marginBottom: 20, fontFamily: "var(--font-mono)" }}>📋 {shuffled.length} soal · ~15 menit</div>
+                <div style={{ display: "flex", gap: 4, marginBottom: 16 }}>{shuffled.map((_, i) => <div key={i} style={{ flex: 1, height: 4, borderRadius: 2, background: i < fAnswers.length ? (fAnswers[i] === shuffled[i].correct ? "var(--green)" : "var(--red)") : i === fCur ? "var(--accent)" : "var(--border)" }} />)}</div>
+                <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "var(--font-mono)", marginBottom: 8 }}>Q {fCur + 1}/{shuffled.length}<span style={{ marginLeft: 8, padding: "2px 6px", background: "var(--bg-accent)", borderRadius: 4, color: "var(--accent)" }}>{MODULES.find(m => m.id === shuffled[fCur].domain)?.title}</span></div>
+                <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text-primary)", lineHeight: 1.5, marginBottom: 16 }}>{shuffled[fCur].q}</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>{shuffled[fCur].options.map((opt, i) => { let bg = "var(--bg-card)", border = "var(--border)", color = "var(--text-primary)"; if (fExp) { if (i === fSel) { if (i === shuffled[fCur].correct) { bg = "#122E1B"; border = "var(--green)"; color = "var(--green)"; } else { bg = "#2E1216"; border = "var(--red)"; color = "var(--red)"; } } } else if (i === fSel) { bg = "var(--bg-accent)"; border = "var(--accent)"; } return <button key={i} onClick={() => fPick(i)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", borderRadius: 8, border: `1.5px solid ${border}`, background: bg, color, fontSize: 13, cursor: fExp ? "default" : "pointer", textAlign: "left", fontFamily: "var(--font-body)", transition: "all 0.2s", lineHeight: 1.4 }}><span style={{ fontFamily: "var(--font-mono)", fontWeight: 700, fontSize: 12, opacity: 0.6, flexShrink: 0 }}>{String.fromCharCode(65 + i)}</span>{opt}{fExp && i === fSel && i === shuffled[fCur].correct && <span style={{ marginLeft: "auto" }}>✓</span>}{fExp && i === fSel && i !== shuffled[fCur].correct && <span style={{ marginLeft: "auto" }}>✗</span>}</button>; })}</div>
+
+                {fExp && <button onClick={fNext} style={{ ...btnStyle, background: "var(--accent)", width: "100%" }}>{fCur + 1 >= shuffled.length ? "Lihat Skor NUMi" : "Pertanyaan Berikutnya →"}</button>}
+              </div>)}
+            </div>) : (<div>
+              <h2 style={S.moduleTitle}>{cur.icon} {cur.title}</h2>
+              {!showQuiz ? (<><LessonContent moduleId={active} /><div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 1.5, color: "var(--accent)", fontFamily: "var(--font-mono)", marginBottom: 12, paddingTop: 4, borderTop: "1px solid var(--border)" }}>🧪 Eksplorasi Interaktif</div>{(() => { const C = Comps[active]; return C ? <C /> : null; })()}<div style={{ marginTop: 24, textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}><button disabled={(quizAttempts[active] || 0) >= 3} onClick={() => setShowQuiz(true)} style={{ ...btnStyle, background: scores[active] ? "var(--bg-card)" : "var(--accent)", border: scores[active] ? "1px solid var(--border)" : "none", color: (quizAttempts[active] || 0) >= 3 ? "var(--text-muted)" : (scores[active] ? "var(--text-secondary)" : "#fff"), padding: "12px 28px", fontSize: 14, cursor: (quizAttempts[active] || 0) >= 3 ? "not-allowed" : "pointer" }}>{scores[active] ? `↻ Ulangi Kuis (${(quizAttempts[active] || 1) - 1}/2)` : "📝 Mulai Kuis Bab"}</button></div></>) : (<><div style={{ marginBottom: 12 }}><button onClick={() => setShowQuiz(false)} style={{ background: "none", border: "none", color: "var(--accent)", cursor: "pointer", fontSize: 13, fontFamily: "var(--font-mono)", padding: 0 }}>← Kembali ke materi</button></div><Quiz questions={SECTION_QUIZZES[active]} onComplete={onSectionDone(active)} title={`${cur.title} Quiz`} onNext={handleNextModule} attemptCount={quizAttempts[active] || 0} onRetry={() => setShowQuiz(false)} /></>)}
+            </div>)}
+          </div>
+        </div>
+      );
+    }
+
+    const S = {
+      root: { fontFamily: "var(--font-body)", background: "var(--bg)", backgroundImage: "radial-gradient(ellipse 80% 50% at 20% -20%, rgba(79,142,247,0.06) 0%, transparent 60%), radial-gradient(ellipse 60% 40% at 80% 110%, rgba(91,192,136,0.04) 0%, transparent 60%)", color: "var(--text-primary)", minHeight: "100vh", position: "relative" },
+      /* Removed header and tab styles as they are now in <style> tag */
+      content: { maxWidth: 860, margin: "0 auto", padding: "40px 24px 80px" }, moduleTitle: { fontSize: 20, fontWeight: 700, marginBottom: 16, letterSpacing: -0.3 },
+      intro: { fontSize: 14, lineHeight: 1.7, color: "var(--text-secondary)", marginBottom: 16 },
+      chip: { padding: "6px 14px", borderRadius: 20, border: "1px solid var(--border)", background: "var(--bg-card)", color: "var(--text-secondary)", fontSize: 12, cursor: "pointer", fontFamily: "var(--font-mono)", transition: "all 0.2s" },
+      chipActive: { background: "var(--bg-accent)", borderColor: "var(--accent)", color: "var(--accent)" },
+      input: { width: "100%", padding: "10px 14px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg-card)", color: "var(--text-primary)", fontSize: 13, fontFamily: "var(--font-mono)", outline: "none", marginBottom: 16, boxSizing: "border-box" },
+      sliderLabel: { display: "block", fontSize: 12, color: "var(--text-muted)", marginBottom: 4, fontFamily: "var(--font-mono)" }, slider: { width: "100%", marginBottom: 12 },
+      statRow: { display: "flex", gap: 8, marginBottom: 12, marginTop: 12, flexWrap: "wrap" },
+      table: { width: "100%", borderCollapse: "collapse", fontSize: 13, fontFamily: "var(--font-mono)", marginBottom: 4 },
+      th: { padding: "8px 10px", borderBottom: "2px solid var(--border)", color: "var(--text-muted)", fontWeight: 500, textAlign: "center", fontSize: 11, textTransform: "uppercase", letterSpacing: 1 },
+      td: { padding: "8px 10px", borderBottom: "1px solid var(--border)", textAlign: "center", color: "var(--text-secondary)" },
+    };
+
+
+    ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(BiostatisticsLab));
+  </script>
+</body>
+
+</html>
